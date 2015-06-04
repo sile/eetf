@@ -1,0 +1,4 @@
+[package]
+name = "eetf"
+version = "0.1.0"
+authors = ["Takeru Ohta <phjgt308@gmail.com>"]
