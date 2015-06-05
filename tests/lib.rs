@@ -49,3 +49,10 @@ fn decode_atom() {
     let expected = "hoge".to_string();
     assert_eq!(Term::Atom(expected), decode(&input).unwrap());
 }
+
+#[test]
+fn decode_nil() {
+    let input = [131,106];
+    let expected = vec![];
+    assert_eq!(Term::List(expected), decode(&input).unwrap());
+}

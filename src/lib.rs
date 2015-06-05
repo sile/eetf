@@ -6,6 +6,7 @@ pub enum Term {
     Int (i32),
     Float (f64),
     Atom (String),
+    List (Vec<Term>),
 }
 
 const VERSION: u8 = 131;
@@ -14,6 +15,8 @@ const TAG_SMALL_INTEGER: u8 = 97; // 10.4: SMALL_INTEGER_EXT
 const TAG_INTEGER: u8 = 98; // 10.5: INTEGER_ET
 const TAG_FLOAT: u8 = 99; // 10.6: FLOAT_EXT
 const TAG_ATOM: u8 = 100; // 10.7: ATOM_EXT
+const TAG_NIL: u8 = 106; // 10.14: NIL_EXT
+const TAG_LIST: u8 = 108; // 10.16: LIST_EXT
 const TAG_NEW_FLOAT: u8 = 70; // 10.26: NEW_FLOAT_EXT
 
 pub fn encode() {
@@ -32,8 +35,26 @@ pub fn decode(bytes: &[u8]) -> Option<Term> {
         TAG_FLOAT => decode_float(&bytes[2..]),
         TAG_ATOM => decode_atom(&bytes[2..]),
         TAG_NEW_FLOAT => decode_new_float(&bytes[2..]),
+        TAG_NIL => decode_nil(&bytes[2..]),
+        TAG_LIST => decode_list(&bytes[2..]),
         _ => unimplemented!(),
     }
+}
+
+fn decode_nil(_bytes: &[u8]) -> Option<Term> {
+    Some(Term::List(vec![]))
+}
+
+fn decode_list(bytes: &[u8]) -> Option<Term> {
+    // TODO: Supports improper lists
+    if bytes.len() < 4 { return None }
+
+    let count = to_u32(bytes);
+    let bytes = &bytes[4..];
+
+    unimplemented!()
+    // for i in 0..count {
+    // }
 }
 
 fn decode_float(bytes: &[u8]) -> Option<Term> {
