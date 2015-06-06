@@ -4,6 +4,7 @@ extern crate num;
 
 use std::io::Read;
 use std::cmp::Eq;
+use std::cmp::{Ord,Ordering};
 use std::collections::BTreeMap;
 use num::bigint::{BigInt,Sign};
 
@@ -15,7 +16,7 @@ use num::bigint::{BigInt,Sign};
 pub enum Term { // TODO: Erlangのtermの比較順序に従う
     Int (i32),
     BigInt (BigInt),
-    //Float (f64),
+    Float (FloatWrap),
     Atom (String),
     AtomCacheRef (u8),
     List (Vec<Term>),
@@ -27,6 +28,22 @@ pub enum Term { // TODO: Erlangのtermの比較順序に従う
     Port (String, u32, u8),
     Pid (String, u32, u32, u8),
     Map (BTreeMap<Term, Term>),
+}
+
+#[derive(PartialEq)]
+#[derive(PartialOrd)]
+#[derive(Debug)]
+pub struct FloatWrap{pub value: f64}
+
+impl Eq for FloatWrap {}
+
+impl Ord for FloatWrap {
+    fn cmp(&self, other: &FloatWrap) -> Ordering {
+        // XXX: Maybe inaccurate
+        if self.value < other.value { return Ordering::Less }
+        if self.value > other.value { return Ordering::Greater }
+        return Ordering::Equal
+    }
 }
 
 const VERSION: u8 = 131;
@@ -75,7 +92,7 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_ATOM_CACHE_REF  => decode_atom_cache_ref(r),
             TAG_SMALL_INTEGER   => decode_small_integer(r),
             TAG_INTEGER         => decode_integer(r),
-            TAG_FLOAT           => unimplemented!(),
+            TAG_FLOAT           => decode_float(r),
             TAG_ATOM            => decode_atom(r),
             TAG_REFERENCE       => decode_reference(r),
             TAG_PORT            => decode_port(r),
@@ -95,7 +112,7 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_NEW_FUN         => unimplemented!(),
             TAG_EXPORT          => unimplemented!(),
             TAG_BIT_BINARY      => decode_bit_binary(r),
-            TAG_NEW_FLOAT       => unimplemented!(),
+            TAG_NEW_FLOAT       => decode_new_float(r),
             TAG_ATOM_UTF8       => decode_atom_utf8(r),
             TAG_SMALL_ATOM_UTF8 => decode_small_atom_utf8(r),
             _                   => panic!("Unknown tag: {}", tag)
@@ -323,6 +340,30 @@ fn decode_integer<T: Read>(r: &mut T) -> Option<Term> {
     read_u32(r).and_then(|n| Some(Term::Int(n as i32)))
 }
 
+fn decode_float<T: Read>(r: &mut T) -> Option<Term> {
+    let mut buf: [u8; 31] = [0; 31];
+    if !read_full(r, &mut buf) { return None }
+    std::str::from_utf8(&buf).ok().and_then(|s| {
+        let s = s.trim_right_matches('\u{0}');
+        let v: Vec<&str> = s.splitn(2, 'e').collect();
+        if v.len() != 2 { return None }
+
+        v[0].parse().ok().and_then(|decimal: f64| v[1].trim_left_matches('+').parse().ok().and_then(|exp| {
+            let f = decimal * 10f64.powi(exp);
+            Some(Term::Float(FloatWrap{value: f}))
+        }))
+    })
+}
+
+fn decode_new_float<T: Read>(r: &mut T) -> Option<Term> {
+    use std::mem;
+    read_u64(r).and_then(|n| {
+        unsafe {
+            Some(Term::Float(FloatWrap{value: mem::transmute::<u64, f64>(n)}))
+        }
+    })
+}
+
 fn read_u8<T: Read>(r: &mut T) -> Option<u8> {
     let mut buf: [u8; 1] = [0; 1];
     if read_full(r, &mut buf) { Some(buf[0]) } else { None }
@@ -338,6 +379,10 @@ fn read_u32<T: Read>(r: &mut T) -> Option<u32> {
     let mut buf: [u8; 4] = [0; 4];
     if !read_full(r, &mut buf) { return None }
     Some(((buf[0] as u32) << 24) + ((buf[1] as u32) << 16) + ((buf[2] as u32) << 8) + (buf[3] as u32))
+}
+
+fn read_u64<T: Read>(r: &mut T) -> Option<u64> {
+    read_u32(r).and_then(|high| read_u32(r).and_then(|low| Some(((high as u64) << 32) + (low as u64))))
 }
 
 fn read_full<T: Read>(r: &mut T, buf: &mut [u8]) -> bool {

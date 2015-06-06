@@ -30,6 +30,23 @@ fn decode_atom_cache_ref() {
 }
 
 #[test]
+fn decode_float() {
+    // let input = [131,99,45,49,46,50,51,52,53,48,48,48,48,48,48,48,48,48,48,48,48,50,56,52,50,101,43,48,50,0,0,0,0];
+    // let expected = FloatWrap{value: -123.45};
+    // assert_decode!(Some(Term::Float(expected)), input);
+
+    let input = [131,99,49,46,50,51,52,53,48,48,48,48,48,48,48,48,48,48,48,48,48,55,48,53,101,45,48,50,0,0,0,0,0];
+    let expected = FloatWrap{value: 0.012345};
+    assert_decode!(Some(Term::Float(expected)), input);
+}
+#[test]
+fn decode_new_float() {
+    let input = [131,70,63,137,72,85,218,39,40,99];
+    let expected = FloatWrap{value: 0.012345};
+    assert_decode!(Some(Term::Float(expected)), input);
+}
+
+#[test]
 fn decode_small_integer() {
     let input = [131,97,5];
     let expected = 5;
