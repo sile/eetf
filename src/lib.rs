@@ -9,6 +9,7 @@ pub enum Term {
     Float (f64),
     Atom (String),
     List (Vec<Term>),
+    ImproperList (Vec<Term>, Box<Term>),
     Tuple (Vec<Term>),
     Binary (Vec<u8>),
 }
@@ -69,7 +70,7 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_MAP             => unimplemented!(),
             TAG_NIL             => decode_nil(r),
             TAG_STRING          => decode_string(r),
-            TAG_LIST            => unimplemented!(),
+            TAG_LIST            => decode_list(r),
             TAG_BINARY          => decode_binary(r),
             TAG_SMALL_BIG       => unimplemented!(),
             TAG_LARGE_BIG       => unimplemented!(),
@@ -117,8 +118,29 @@ fn decode_nil<T: Read>(_r: &mut T) -> Option<Term> {
     Some(Term::List(vec![]))
 }
 
-fn decode_string<T: Read>(_r: &mut T) -> Option<Term> {
-    unimplemented!()
+fn decode_string<T: Read>(r: &mut T) -> Option<Term> {
+    read_u16(r).and_then(|count| {
+        let mut buf = vec![0; count as usize];
+        if ! read_full(r, &mut buf) { return None }
+        Some(Term::List(buf.iter().map(|x| Term::Int(*x as i32)).collect()))
+    })
+}
+
+fn decode_list<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|count| {
+        let mut elements = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            match decode_term(r) {
+                None    => return None,
+                Some(v) => elements.push(v),
+            }
+        }
+        match decode_term(r) {
+            None                                    => None,
+            Some(Term::List(ref l)) if l.is_empty() => Some(Term::List(elements)), // XXX
+            Some(v)                                 => Some(Term::ImproperList(elements, Box::new(v))),
+        }
+    })
 }
 
 fn decode_atom<T: Read>(r: &mut T) -> Option<Term> {

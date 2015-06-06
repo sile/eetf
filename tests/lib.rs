@@ -87,6 +87,27 @@ fn decode_nil() {
 }
 
 #[test]
+fn decode_string() {
+    let input = [131,107,0,4,104,111,103,101];
+    let expected = vec![104,111,103,101].iter().map(|x| Term::Int(*x)).collect(); // "hoge"
+    assert_decode!(Some(Term::List(expected)), input);
+}
+
+#[test]
+fn decode_list() {
+    let input = [131,108,0,0,0,2,97,1,100,0,3,111,110,101,106];
+    let expected = vec![Term::Int(1), Term::Atom("one".to_string())];
+    assert_decode!(Some(Term::List(expected)), input);
+}
+
+#[test]
+fn decode_improper_list() {
+    let input = [131,108,0,0,0,1,97,1,100,0,3,111,110,101];
+    let expected = Term::ImproperList(vec![Term::Int(1)], Box::new(Term::Atom("one".to_string())));
+    assert_decode!(Some(expected), input);
+}
+
+#[test]
 fn decode_binary() {
     let input = [131,109,0,0,0,4,104,111,103,101];
     let expected = vec![104,111,103,101]; // "hoge"
