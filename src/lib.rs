@@ -1,12 +1,21 @@
 /// Copyright (c) 2015, Takeru Ohta <phjgt308@gmail.com>
 ///
+extern crate num;
+
 use std::io::Read;
+use std::collections::BTreeMap;
+use std::cmp::Eq;
+use num::bigint::{BigInt,Sign};
 
 #[derive(Debug)]
 #[derive(PartialEq)]
-pub enum Term {
+#[derive(PartialOrd)]
+#[derive(Eq)]
+#[derive(Ord)]
+pub enum Term { // TODO: Erlangのtermの比較順序に従う
     Int (i32),
-    Float (f64),
+    BigInt (BigInt),
+    //Float (f64),
     Atom (String),
     List (Vec<Term>),
     ImproperList (Vec<Term>, Box<Term>),
@@ -15,6 +24,7 @@ pub enum Term {
     Ref (String, Vec<u32>, u8),
     Port (String, u32, u8),
     Pid (String, u32, u32, u8),
+    Map (BTreeMap<Term, Term>),
 }
 
 const VERSION: u8 = 131;
@@ -70,13 +80,13 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_PID             => decode_pid(r),
             TAG_SMALL_TUPLE     => decode_small_tuple(r),
             TAG_LARGE_TUPLE     => decode_large_tuple(r),
-            TAG_MAP             => unimplemented!(),
+            TAG_MAP             => decode_map(r),
             TAG_NIL             => decode_nil(r),
             TAG_STRING          => decode_string(r),
             TAG_LIST            => decode_list(r),
             TAG_BINARY          => decode_binary(r),
-            TAG_SMALL_BIG       => unimplemented!(),
-            TAG_LARGE_BIG       => unimplemented!(),
+            TAG_SMALL_BIG       => decode_small_big(r),
+            TAG_LARGE_BIG       => decode_large_big(r),
             TAG_NEW_REFERENCE   => decode_new_reference(r),
             TAG_SMALL_ATOM      => decode_small_atom(r),
             TAG_FUN             => unimplemented!(),
@@ -114,6 +124,19 @@ fn decode_large_tuple<T: Read>(r: &mut T) -> Option<Term> {
             }
         }
         Some(Term::Tuple(tuple))
+    })
+}
+
+fn decode_map<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|arity| {
+        let mut map = BTreeMap::new();
+        for _ in 0..arity {
+            match decode_term(r).and_then(|k| decode_term(r).and_then(|v| Some(map.insert(k, v)))) {
+                None => return None,
+                rlt  => rlt,
+            };
+        };
+        Some(Term::Map(map))
     })
 }
 
@@ -244,6 +267,36 @@ fn decode_binary<T: Read>(r: &mut T) -> Option<Term> {
         if ! read_full(r, &mut buf) { return None }
         Some(Term::Binary(buf))
     })
+}
+
+fn decode_large_big<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|count| read_u8(r).and_then(|sign| {
+        let sign =
+            match sign {
+                0 => Sign::Plus,
+                1 => Sign::Minus,
+                _ => return None,
+            };
+        let mut bytes = vec![0; count as usize];
+        if ! read_full(r, &mut bytes) { return None }
+        bytes.reverse(); // LE to BE
+        Some(Term::BigInt(BigInt::from_bytes_be(sign, &bytes)))
+    }))
+}
+
+fn decode_small_big<T: Read>(r: &mut T) -> Option<Term> {
+    read_u8(r).and_then(|count| read_u8(r).and_then(|sign| {
+        let sign =
+            match sign {
+                0 => Sign::Plus,
+                1 => Sign::Minus,
+                _ => return None,
+            };
+        let mut bytes = vec![0; count as usize];
+        if ! read_full(r, &mut bytes) { return None }
+        bytes.reverse(); // LE to BE
+        Some(Term::BigInt(BigInt::from_bytes_be(sign, &bytes)))
+    }))
 }
 
 fn decode_small_integer<T: Read>(r: &mut T) -> Option<Term> {

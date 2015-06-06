@@ -1,9 +1,12 @@
 /// Copyright (c) 2015, Takeru Ohta <phjgt308@gmail.com>
 //
 extern crate eetf;
+extern crate num;
 
 use eetf::*;
 use std::io::Cursor;
+use std::collections::BTreeMap;
+use num::bigint::ToBigInt;
 
 macro_rules! assert_decode {
     ($x:expr, $y:expr) => {{
@@ -24,6 +27,20 @@ fn decode_small_integer() {
     let input = [131,97,5];
     let expected = 5;
     assert_decode!(Some(Term::Int(expected)), input);
+}
+
+#[test]
+fn decode_small_big() {
+    let input = [131,110,1,0,10];
+    let expected = Term::BigInt(10.to_bigint().unwrap());
+    assert_decode!(Some(expected), input);
+}
+
+#[test]
+fn decode_large_big() {
+    let input = [131,111,0,0,0,1,1,10];
+    let expected = Term::BigInt(-10.to_bigint().unwrap());
+    assert_decode!(Some(expected), input);
 }
 
 #[test]
@@ -141,6 +158,15 @@ fn decode_pid() {
     let input = [131,103,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,40,0,0,0,0,0];
     let expected = Term::Pid("nonode@nohost".to_string(), 40, 0, 0);
     assert_decode!(Some(expected), input);
+}
+
+#[test]
+fn decode_map() {
+    let input = [131,116,0,0,0,2,97,1,97,2,100,0,3,111,110,101,100,0,3,116,119,111];
+    let mut expected = BTreeMap::new();
+    expected.insert(Term::Int(1), Term::Int(2));
+    expected.insert(Term::Atom("one".to_string()), Term::Atom("two".to_string()));
+    assert_decode!(Some(Term::Map(expected)), input);
 }
 
 // #[test]
