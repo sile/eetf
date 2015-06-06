@@ -114,6 +114,35 @@ fn decode_binary() {
     assert_decode!(Some(Term::Binary(expected)), input);
 }
 
+#[test]
+fn decode_reference() {
+    let input = [131,101,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,49,0];
+    let expected = Term::Ref("nonode@nohost".to_string(), vec![49], 0);
+    assert_decode!(Some(expected), input);
+}
+
+#[test]
+fn decode_new_reference() {
+    let input = [131,114,0,3,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,0,123,0,0,0,0,0,0,0,0];
+    let expected = Term::Ref("nonode@nohost".to_string(), vec![123,0,0], 0);
+    assert_decode!(Some(expected), input);
+}
+
+#[test]
+fn decode_port() {
+    let input = [131,102,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,49,0];
+    let expected = Term::Port("nonode@nohost".to_string(), 49, 0);
+    assert_decode!(Some(expected), input);
+}
+
+
+#[test]
+fn decode_pid() {
+    let input = [131,103,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,40,0,0,0,0,0];
+    let expected = Term::Pid("nonode@nohost".to_string(), 40, 0, 0);
+    assert_decode!(Some(expected), input);
+}
+
 // #[test]
 // fn decode_float() {
 //     let input = [131,99,49,46,50,51,51,57,57,57,57,57,57,57,57,57,57,57,57,57,56,53,55,57,101,43,48,49,0,0,0,0,0];

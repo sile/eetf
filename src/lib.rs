@@ -12,6 +12,9 @@ pub enum Term {
     ImproperList (Vec<Term>, Box<Term>),
     Tuple (Vec<Term>),
     Binary (Vec<u8>),
+    Ref (String, Vec<u32>, u8),
+    Port (String, u32, u8),
+    Pid (String, u32, u32, u8),
 }
 
 const VERSION: u8 = 131;
@@ -62,9 +65,9 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_INTEGER         => decode_integer(r),
             TAG_FLOAT           => unimplemented!(),
             TAG_ATOM            => decode_atom(r),
-            TAG_REFERENCE       => unimplemented!(),
-            TAG_PORT            => unimplemented!(),
-            TAG_PID             => unimplemented!(),
+            TAG_REFERENCE       => decode_reference(r),
+            TAG_PORT            => decode_port(r),
+            TAG_PID             => decode_pid(r),
             TAG_SMALL_TUPLE     => decode_small_tuple(r),
             TAG_LARGE_TUPLE     => decode_large_tuple(r),
             TAG_MAP             => unimplemented!(),
@@ -74,7 +77,7 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_BINARY          => decode_binary(r),
             TAG_SMALL_BIG       => unimplemented!(),
             TAG_LARGE_BIG       => unimplemented!(),
-            TAG_NEW_REFERENCE   => unimplemented!(),
+            TAG_NEW_REFERENCE   => decode_new_reference(r),
             TAG_SMALL_ATOM      => decode_small_atom(r),
             TAG_FUN             => unimplemented!(),
             TAG_NEW_FUN         => unimplemented!(),
@@ -139,6 +142,65 @@ fn decode_list<T: Read>(r: &mut T) -> Option<Term> {
             None                                    => None,
             Some(Term::List(ref l)) if l.is_empty() => Some(Term::List(elements)), // XXX
             Some(v)                                 => Some(Term::ImproperList(elements, Box::new(v))),
+        }
+    })
+}
+
+fn decode_reference<T: Read>(r: &mut T) -> Option<Term> {
+    decode_term(r).and_then(|t| {
+        match t {
+            Term::Atom(node) =>
+                read_u32(r).and_then(|id| read_u8(r).and_then(|creation| {
+                    Some(Term::Ref(node, vec![id], creation))
+                })),
+            _ =>
+                panic!("Unexpected term: {:?} (an atom is expected)", t),
+        }
+    })
+}
+
+fn decode_new_reference<T: Read>(r: &mut T) -> Option<Term> {
+    read_u16(r).and_then(|len| decode_term(r).and_then(|t| {
+        match t {
+            Term::Atom(node) =>
+                read_u8(r).and_then(|creation| {
+                    let mut ids = Vec::with_capacity(len as usize);
+                    for _ in 0..len {
+                        match read_u32(r) {
+                            None     => return None,
+                            Some(id) => ids.push(id),
+                        }
+                    };
+                    Some(Term::Ref(node, ids, creation))
+                }),
+            _ =>
+                panic!("Unexpected term: {:?} (an atom is expected)", t),
+        }
+    }))
+}
+
+fn decode_port<T: Read>(r: &mut T) -> Option<Term> {
+    decode_term(r).and_then(|t| {
+        match t {
+            Term::Atom(node) =>
+                read_u32(r).and_then(|id| read_u8(r).and_then(|creation| {
+                    Some(Term::Port(node, id, creation))
+                })),
+            _ =>
+                panic!("Unexpected term: {:?} (an atom is expected)", t),
+        }
+    })
+}
+
+fn decode_pid<T: Read>(r: &mut T) -> Option<Term> {
+    decode_term(r).and_then(|t| {
+        match t {
+            Term::Atom(node) =>
+                read_u32(r).and_then(|id| read_u32(r).and_then(|serial| read_u8(r).and_then(|creation| {
+                    Some(Term::Pid(node, id, serial, creation))
+                }))),
+            _ =>
+                panic!("Unexpected term: {:?} (an atom is expected)", t),
         }
     })
 }
