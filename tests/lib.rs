@@ -200,16 +200,26 @@ fn decode_map() {
     assert_decode!(Some(Term::Map(expected)), input);
 }
 
-// #[test]
-// fn decode_float() {
-//     let input = [131,99,49,46,50,51,51,57,57,57,57,57,57,57,57,57,57,57,57,57,56,53,55,57,101,43,48,49,0,0,0,0,0];
-//     let expected = 12.34;
-//     assert_eq!(Term::Float(expected), decode(&input).unwrap());
-// }
+#[test]
+fn decode_export() {
+    let input = [131,113,100,0,5,108,105,115,116,115,100,0,3,109,97,112,97,3];
+    let expected = Term::Export("lists".to_string(), "map".to_string(), 3);
+    assert_decode!(Some(expected), input);
+}
 
-// #[test]
-// fn decode_new_float() {
-//     let input = [131,70,64,40,174,20,122,225,71,174];
-//     let expected = 12.34;
-//     assert_eq!(Term::Float(expected), decode(&input).unwrap());
-// }
+#[test]
+fn decode_new_fun() {
+    let input = [131,112,0,0,0,69,0,99,248,195,38,118,177,13,194,144,82,98,233,226,78,60,141,0,0,0,0,0,0,0,0,100,0,4,104,111,103,101,97,0,98,3,31,198,25,103,100,0,13,110,111,110,111,100,101,64,110,111,104,111,115,116,0,0,0,33,0,0,0,0,0];
+    let expected =
+        Term::NewFun{
+            pid: Box::new(Term::Pid("nonode@nohost".to_string(), 33, 0, 0)),
+            module: "hoge".to_string(),
+            arity: 0,
+            index: 0,
+            uniq: vec![99, 248, 195, 38, 118, 177, 13, 194, 144, 82, 98, 233, 226, 78, 60, 141],
+            old_index: 0,
+            old_uniq: 52413977,
+            free_vars: vec![],
+        };
+    assert_decode!(Some(expected), input);
+}

@@ -8,6 +8,8 @@ use std::cmp::{Ord,Ordering};
 use std::collections::BTreeMap;
 use num::bigint::{BigInt,Sign};
 
+// NOTE: enumに全部の型をまとめる必要はないかもしれない
+//       (ex: Pid型とTerm::Pid(Pid)を別に用意する => Pidだけを受け取ると分かっている関数を書く場合はその方が便利)
 #[derive(Debug)]
 #[derive(PartialEq)]
 #[derive(PartialOrd)]
@@ -28,6 +30,24 @@ pub enum Term { // TODO: Erlangのtermの比較順序に従う
     Port (String, u32, u8),
     Pid (String, u32, u32, u8),
     Map (BTreeMap<Term, Term>),
+    Export (String, String, u8),
+    Fun {
+        pid: Box<Term>,
+        module: String,
+        index: u32,
+        uniq: u32,
+        free_vars: Vec<Term>,
+    },
+    NewFun {
+        pid: Box<Term>,
+        module: String,
+        arity: u8,
+        index: u32,
+        uniq: Vec<u8>, //[u8; 16],
+        old_index: u32,
+        old_uniq: u32,
+        free_vars: Vec<Term>,
+    },
 }
 
 #[derive(PartialEq)]
@@ -108,9 +128,9 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_LARGE_BIG       => decode_large_big(r),
             TAG_NEW_REFERENCE   => decode_new_reference(r),
             TAG_SMALL_ATOM      => decode_small_atom(r),
-            TAG_FUN             => unimplemented!(),
-            TAG_NEW_FUN         => unimplemented!(),
-            TAG_EXPORT          => unimplemented!(),
+            TAG_FUN             => decode_fun(r),
+            TAG_NEW_FUN         => decode_new_fun(r),
+            TAG_EXPORT          => decode_export(r),
             TAG_BIT_BINARY      => decode_bit_binary(r),
             TAG_NEW_FLOAT       => decode_new_float(r),
             TAG_ATOM_UTF8       => decode_atom_utf8(r),
@@ -121,6 +141,8 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
 }
 
 fn decode_atom_cache_ref<T: Read>(r: &mut T) -> Option<Term> {
+    // TODO: デコーダインスタンスを作って、そこにテーブルを保持させる必要がありそう
+    // TODO: distributedサポート
     read_u8(r).and_then(|index| Some(Term::AtomCacheRef(index)))
 }
 
@@ -362,6 +384,85 @@ fn decode_new_float<T: Read>(r: &mut T) -> Option<Term> {
             Some(Term::Float(FloatWrap{value: mem::transmute::<u64, f64>(n)}))
         }
     })
+}
+
+fn decode_export<T: Read>(r: &mut T) -> Option<Term> {
+    decode_term(r).and_then(|module| decode_term(r).and_then(|function| decode_term(r).and_then(|arity| {
+        match (module, function, arity) {
+            (Term::Atom(m), Term::Atom(f), Term::Int(a)) => {
+                if a > 255 { return None }
+                Some(Term::Export(m, f, a as u8))
+            },
+            _ =>
+                None
+        }
+    })))
+}
+
+// TODO: test
+fn decode_fun<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|num_free| {
+        decode_fun(r).and_then(|pid| decode_term(r).and_then(|module| decode_term(r).and_then(|index| {
+            decode_term(r).and_then(|uniq| {
+                match (module, index, uniq, &pid) {
+                    (Term::Atom(m), Term::Int(i), Term::Int(u), &Term::Pid(..)) => {
+                        let mut free_vars: Vec<Term> = Vec::with_capacity(num_free as usize);
+                        for _ in 0..num_free {
+                            match decode_term(r) {
+                                None    => return None,
+                                Some(v) => free_vars.push(v),
+                            }
+                        };
+                        Some(Term::Fun{
+                            pid: Box::new(pid),
+                            module: m,
+                            index: i as u32,
+                            uniq: u as u32,
+                            free_vars: free_vars,
+                        })},
+                        _ =>
+                            None
+                    }
+            })
+        })))
+    })
+}
+
+fn decode_new_fun<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|_size| read_u8(r).and_then(|arity| {
+        let mut uniq: Vec<u8> = vec![0; 16];
+        if !read_full(r, &mut uniq) { return None }
+
+        read_u32(r).and_then(|index| read_u32(r).and_then(|num_free| {
+            decode_term(r).and_then(|module| decode_term(r).and_then(|old_index| decode_term(r).and_then(|old_uniq| {
+                decode_term(r).and_then(|pid| {
+                    match (module, old_index, old_uniq, &pid) {
+                        (Term::Atom(m), Term::Int(oi), Term::Int(ou), &Term::Pid(..)) => {
+                            let mut free_vars: Vec<Term> = Vec::with_capacity(num_free as usize);
+                            for _ in 0..num_free {
+                                match decode_term(r) {
+                                    None    => return None,
+                                    Some(v) => free_vars.push(v),
+                                }
+                            };
+                            Some(Term::NewFun{
+                                pid: Box::new(pid),
+                                module: m,
+                                arity: arity,
+                                index: index,
+                                uniq: uniq,
+                                old_index: oi as u32, // XXX:
+                                old_uniq: ou as u32, // XXX:
+                                free_vars: free_vars,
+                            })
+                        },
+                        _ =>
+                            None
+                    }
+                })
+            })))
+        }))
+    }))
 }
 
 fn read_u8<T: Read>(r: &mut T) -> Option<u8> {
