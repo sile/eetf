@@ -3,8 +3,8 @@
 extern crate num;
 
 use std::io::Read;
-use std::collections::BTreeMap;
 use std::cmp::Eq;
+use std::collections::BTreeMap;
 use num::bigint::{BigInt,Sign};
 
 #[derive(Debug)]
@@ -17,10 +17,12 @@ pub enum Term { // TODO: Erlangのtermの比較順序に従う
     BigInt (BigInt),
     //Float (f64),
     Atom (String),
+    AtomCacheRef (u8),
     List (Vec<Term>),
     ImproperList (Vec<Term>, Box<Term>),
     Tuple (Vec<Term>),
     Binary (Vec<u8>),
+    BitStr (Vec<u8>, u8), // TODO: Replaces to a native bitstring type
     Ref (String, Vec<u32>, u8),
     Port (String, u32, u8),
     Pid (String, u32, u32, u8),
@@ -70,7 +72,7 @@ pub fn decode<T: Read>(r: &mut T) -> Option<Term> {
 fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
     read_u8(r).and_then(|tag| {
         match tag {
-            TAG_ATOM_CACHE_REF  => unimplemented!(),
+            TAG_ATOM_CACHE_REF  => decode_atom_cache_ref(r),
             TAG_SMALL_INTEGER   => decode_small_integer(r),
             TAG_INTEGER         => decode_integer(r),
             TAG_FLOAT           => unimplemented!(),
@@ -92,13 +94,17 @@ fn decode_term<T: Read>(r: &mut T) -> Option<Term> {
             TAG_FUN             => unimplemented!(),
             TAG_NEW_FUN         => unimplemented!(),
             TAG_EXPORT          => unimplemented!(),
-            TAG_BIT_BINARY      => unimplemented!(),
+            TAG_BIT_BINARY      => decode_bit_binary(r),
             TAG_NEW_FLOAT       => unimplemented!(),
             TAG_ATOM_UTF8       => decode_atom_utf8(r),
             TAG_SMALL_ATOM_UTF8 => decode_small_atom_utf8(r),
             _                   => panic!("Unknown tag: {}", tag)
         }
     })
+}
+
+fn decode_atom_cache_ref<T: Read>(r: &mut T) -> Option<Term> {
+    read_u8(r).and_then(|index| Some(Term::AtomCacheRef(index)))
 }
 
 fn decode_small_tuple<T: Read>(r: &mut T) -> Option<Term> {
@@ -267,6 +273,16 @@ fn decode_binary<T: Read>(r: &mut T) -> Option<Term> {
         if ! read_full(r, &mut buf) { return None }
         Some(Term::Binary(buf))
     })
+}
+
+fn decode_bit_binary<T: Read>(r: &mut T) -> Option<Term> {
+    read_u32(r).and_then(|len| read_u8(r).and_then(|bits| {
+        if bits == 0 || bits > 7 { panic!("Wrong bits: {}", bits) }
+
+        let mut buf = vec![0; len as usize];
+        if ! read_full(r, &mut buf) { return None }
+        Some(Term::BitStr(buf, bits))
+    }))
 }
 
 fn decode_large_big<T: Read>(r: &mut T) -> Option<Term> {

@@ -23,6 +23,13 @@ fn decode_empty() {
 }
 
 #[test]
+fn decode_atom_cache_ref() {
+    let input = [131,82,5];
+    let expected = 5;
+    assert_decode!(Some(Term::AtomCacheRef(expected)), input);
+}
+
+#[test]
 fn decode_small_integer() {
     let input = [131,97,5];
     let expected = 5;
@@ -129,6 +136,13 @@ fn decode_binary() {
     let input = [131,109,0,0,0,4,104,111,103,101];
     let expected = vec![104,111,103,101]; // "hoge"
     assert_decode!(Some(Term::Binary(expected)), input);
+}
+
+#[test]
+fn decode_bit_binary() {
+    let input = [131,77,0,0,0,4,6,1,2,3,16];
+    let expected = Term::BitStr(vec![1,2,3,16], 6);
+    assert_decode!(Some(expected), input);
 }
 
 #[test]
