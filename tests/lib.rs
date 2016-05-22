@@ -83,6 +83,42 @@ fn float_test() {
                encode(Term::from(Float::from(123.456))));
 }
 
+#[test]
+fn pid_test() {
+    // Display
+    assert_eq!(r#"<'nonode@nohost'.1.2>"#,
+               Pid::from(("nonode@nohost", 1, 2)).to_string());
+
+    // Decode
+    assert_eq!(Some(&Pid::from(("nonode@nohost", 49, 0))),
+               decode(&[131, 103, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104,
+                        111, 115, 116, 0, 0, 0, 49, 0, 0, 0, 0, 0])
+                   .as_pid()); // PID_EXT
+
+    // Encode
+    assert_eq!(vec![131, 103, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111,
+                    115, 116, 0, 0, 0, 49, 0, 0, 0, 0, 0],
+               encode(Term::from(Pid::from(("nonode@nohost", 49, 0)))));
+}
+
+#[test]
+fn port_test() {
+    // Display
+    assert_eq!(r#"#Port<'nonode@nohost'.1>"#,
+               Port::from(("nonode@nohost", 1)).to_string());
+
+    // Decode
+    assert_eq!(Some(&Port::from(("nonode@nohost", 366))),
+               decode(&[131, 102, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104,
+                        111, 115, 116, 0, 0, 1, 110, 0])
+                   .as_port()); // PORT_EXT
+
+    // Encode
+    assert_eq!(vec![131, 102, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111,
+                    115, 116, 0, 0, 1, 110, 0],
+               encode(Term::from(Port::from(("nonode@nohost", 366)))));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();

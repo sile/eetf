@@ -14,18 +14,18 @@ pub enum Term {
     FixInteger(FixInteger),
     BigInteger(BigInteger),
     Float(Float),
+    Pid(Pid),
+    Port(Port),
 }
+//     Reference(Reference),
+//     ExternalFun(ExternalFun),
+//     InternalFun(InternalFun),
+//     Binary(Binary),
+//     BitStr(BitStr),
 //     List(List),
 //     ImproperList(ImproperList),
 //     Tuple(Tuple),
 //     Map(Map),
-//     Binary(Binary),
-//     BitStr(BitStr),
-//     Pid(Pid),
-//     Port(Port),
-//     Reference(Reference),
-//     ExternalFun(ExternalFun),
-//     InternalFun(InternalFun),
 // }
 impl Term {
     pub fn decode<R: io::Read>(reader: R) -> io::Result<Self> {
@@ -62,6 +62,20 @@ impl Term {
             None
         }
     }
+    pub fn as_pid(&self) -> Option<&Pid> {
+        if let Term::Pid(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn as_port(&self) -> Option<&Port> {
+        if let Term::Port(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -70,6 +84,8 @@ impl fmt::Display for Term {
             Term::FixInteger(ref x) => x.fmt(f),
             Term::BigInteger(ref x) => x.fmt(f),
             Term::Float(ref x) => x.fmt(f),
+            Term::Pid(ref x) => x.fmt(f),
+            Term::Port(ref x) => x.fmt(f),
         }
     }
 }
@@ -91,6 +107,16 @@ impl convert::From<BigInteger> for Term {
 impl convert::From<Float> for Term {
     fn from(x: Float) -> Self {
         Term::Float(x)
+    }
+}
+impl convert::From<Pid> for Term {
+    fn from(x: Pid) -> Self {
+        Term::Pid(x)
+    }
+}
+impl convert::From<Port> for Term {
+    fn from(x: Port) -> Self {
+        Term::Port(x)
     }
 }
 
@@ -158,5 +184,49 @@ impl fmt::Display for Float {
 impl convert::From<f64> for Float {
     fn from(value: f64) -> Self {
         Float { value: value }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Pid {
+    pub node: Atom,
+    pub id: u32,
+    pub serial: u32,
+    pub creation: u8,
+}
+impl fmt::Display for Pid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "<{}.{}.{}>", self.node, self.id, self.serial)
+    }
+}
+impl<'a> convert::From<(&'a str, u32, u32)> for Pid {
+    fn from((node, id, serial): (&'a str, u32, u32)) -> Self {
+        Pid {
+            node: Atom::from(node),
+            id: id,
+            serial: serial,
+            creation: 0,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Port {
+    pub node: Atom,
+    pub id: u32,
+    pub creation: u8,
+}
+impl fmt::Display for Port {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "#Port<{}.{}>", self.node, self.id)
+    }
+}
+impl<'a> convert::From<(&'a str, u32)> for Port {
+    fn from((node, id): (&'a str, u32)) -> Self {
+        Port {
+            node: Atom::from(node),
+            id: id,
+            creation: 0,
+        }
     }
 }

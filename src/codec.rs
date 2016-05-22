@@ -70,8 +70,8 @@ impl<R: io::Read> Decoder<R> {
             FLOAT_EXT => self.decode_float_ext(),
             ATOM_EXT => self.decode_atom_ext(),
             REFERENCE_EXT => unimplemented!(),
-            PORT_EXT => unimplemented!(),
-            PID_EXT => unimplemented!(),
+            PORT_EXT => self.decode_port_ext(),
+            PID_EXT => self.decode_pid_ext(),
             SMALL_TUPLE_EXT => unimplemented!(),
             LARGE_TUPLE_EXT => unimplemented!(),
             NIL_EXT => unimplemented!(),
@@ -90,6 +90,35 @@ impl<R: io::Read> Decoder<R> {
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
         }
+    }
+    fn decode_pid_ext(&mut self) -> DecodeResult {
+        let node = try!(self.decode_term().and_then(|t| {
+            if let Some(a) = t.as_atom() {
+                Ok(a.clone())
+            } else {
+                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
+            }
+        }));
+        Ok(Term::from(Pid {
+            node: node,
+            id: try!(self.reader.read_u32::<BigEndian>()),
+            serial: try!(self.reader.read_u32::<BigEndian>()),
+            creation: try!(self.reader.read_u8()),
+        }))
+    }
+    fn decode_port_ext(&mut self) -> DecodeResult {
+        let node = try!(self.decode_term().and_then(|t| {
+            if let Some(a) = t.as_atom() {
+                Ok(a.clone())
+            } else {
+                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
+            }
+        }));
+        Ok(Term::from(Port {
+            node: node,
+            id: try!(self.reader.read_u32::<BigEndian>()),
+            creation: try!(self.reader.read_u8()),
+        }))
     }
     fn decode_new_float_ext(&mut self) -> DecodeResult {
         let value = try!(self.reader.read_f64::<BigEndian>());
@@ -173,6 +202,8 @@ impl<W: io::Write> Encoder<W> {
             Term::FixInteger(ref x) => self.encode_fix_integer(x),
             Term::BigInteger(ref x) => self.encode_big_integer(x),
             Term::Float(ref x) => self.encode_float(x),
+            Term::Pid(ref x) => self.encode_pid(x),
+            Term::Port(ref x) => self.encode_port(x),
         }
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
@@ -220,6 +251,21 @@ impl<W: io::Write> Encoder<W> {
         }
         try!(self.writer.write_u8(aux::sign_to_byte(sign)));
         try!(self.writer.write_all(&bytes));
+        Ok(())
+    }
+    fn encode_pid(&mut self, x: &Pid) -> EncodeResult {
+        try!(self.writer.write_u8(PID_EXT));
+        try!(self.encode_atom(&x.node));
+        try!(self.writer.write_u32::<BigEndian>(x.id));
+        try!(self.writer.write_u32::<BigEndian>(x.serial));
+        try!(self.writer.write_u8(x.creation));
+        Ok(())
+    }
+    fn encode_port(&mut self, x: &Port) -> EncodeResult {
+        try!(self.writer.write_u8(PORT_EXT));
+        try!(self.encode_atom(&x.node));
+        try!(self.writer.write_u32::<BigEndian>(x.id));
+        try!(self.writer.write_u8(x.creation));
         Ok(())
     }
 }
