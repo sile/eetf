@@ -5,6 +5,8 @@ use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
 use super::*;
 
+const VERSION: u8 = 131;
+
 const DISTRIBUTION_HEADER: u8 = 68;
 const NEW_FLOAT_EXT: u8 = 70;
 const BIT_BINARY_EXT: u8 = 77;
@@ -35,7 +37,6 @@ const ATOM_UTF8_EXT: u8 = 118;
 const SMALL_ATOM_UTF8_EXT: u8 = 119;
 
 pub type DecodeResult = io::Result<Term>;
-
 pub struct Decoder<R> {
     reader: R,
     buf: Vec<u8>,
@@ -49,9 +50,12 @@ impl<R: io::Read> Decoder<R> {
     }
     pub fn decode(mut self) -> DecodeResult {
         let version = try!(self.reader.read_u8());
-        if version != 131 {
+        if version != VERSION {
             return aux::invalid_data_error(format!("Unsupported version: {} ", version));
         }
+        self.decode_term()
+    }
+    fn decode_term(&mut self) -> DecodeResult {
         let tag = try!(self.reader.read_u8());
         match tag {
             DISTRIBUTION_HEADER => unimplemented!(),
@@ -117,10 +121,48 @@ impl<R: io::Read> Decoder<R> {
     }
 }
 
+pub type EncodeResult = io::Result<()>;
+pub struct Encoder<W> {
+    writer: W,
+}
+impl<W: io::Write> Encoder<W> {
+    pub fn new(writer: W) -> Self {
+        Encoder { writer: writer }
+    }
+    pub fn encode(mut self, term: &Term) -> EncodeResult {
+        try!(self.writer.write_u8(VERSION));
+        self.encode_term(term)
+    }
+    fn encode_term(&mut self, term: &Term) -> EncodeResult {
+        match *term {
+            Term::Atom(ref x) => self.encode_atom(x),
+            _ => unimplemented!(),
+        }
+    }
+    fn encode_atom(&mut self, x: &Atom) -> EncodeResult {
+        if x.name.len() > 0xFFFF {
+            return aux::invalid_input_error(format!("Too long atom name: length={}", x.name.len()));
+        }
+
+        let is_ascii = x.name.as_bytes().iter().all(|&c| c < 0x80);
+        if is_ascii {
+            try!(self.writer.write_u8(ATOM_EXT));
+        } else {
+            try!(self.writer.write_u8(ATOM_UTF8_EXT));
+        }
+        try!(self.writer.write_u16::<BigEndian>(x.name.len() as u16));
+        try!(self.writer.write_all(x.name.as_bytes()));
+        Ok(())
+    }
+}
+
 mod aux {
     use std::str;
     use std::io;
 
+    pub fn invalid_input_error<T>(message: String) -> io::Result<T> {
+        Err(io::Error::new(io::ErrorKind::InvalidInput, message))
+    }
     pub fn invalid_data_error<T>(message: String) -> io::Result<T> {
         Err(io::Error::new(io::ErrorKind::InvalidData, message))
     }

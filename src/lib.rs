@@ -33,7 +33,7 @@ impl Term {
         codec::Decoder::new(reader).decode()
     }
     pub fn encode<W: io::Write>(&self, writer: W) -> io::Result<()> {
-        unimplemented!()
+        codec::Encoder::new(writer).encode(self)
     }
     pub fn as_atom(&self) -> Option<&Atom> {
         if let &Term::Atom(ref x) = self {
