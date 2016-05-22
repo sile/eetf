@@ -61,13 +61,13 @@ impl<R: io::Read> Decoder<R> {
         let tag = try!(self.reader.read_u8());
         match tag {
             DISTRIBUTION_HEADER => unimplemented!(),
-            NEW_FLOAT_EXT => unimplemented!(),
+            NEW_FLOAT_EXT => self.decode_new_float_ext(),
             BIT_BINARY_EXT => unimplemented!(),
             COMPRESSED_TERM => unimplemented!(),
             ATOM_CACHE_REF => unimplemented!(),
             SMALL_INTEGER_EXT => self.decode_small_integer_ext(),
             INTEGER_EXT => self.decode_integer_ext(),
-            FLOAT_EXT => unimplemented!(),
+            FLOAT_EXT => self.decode_float_ext(),
             ATOM_EXT => self.decode_atom_ext(),
             REFERENCE_EXT => unimplemented!(),
             PORT_EXT => unimplemented!(),
@@ -90,6 +90,14 @@ impl<R: io::Read> Decoder<R> {
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
         }
+    }
+    fn decode_new_float_ext(&mut self) -> DecodeResult {
+        let value = try!(self.reader.read_f64::<BigEndian>());
+        Ok(Term::from(Float::from(value)))
+    }
+    fn decode_float_ext(&mut self) -> DecodeResult {
+        // FIXME: Implement
+        unimplemented!()
     }
     fn decode_small_integer_ext(&mut self) -> DecodeResult {
         let value = try!(self.reader.read_u8());
@@ -164,7 +172,13 @@ impl<W: io::Write> Encoder<W> {
             Term::Atom(ref x) => self.encode_atom(x),
             Term::FixInteger(ref x) => self.encode_fix_integer(x),
             Term::BigInteger(ref x) => self.encode_big_integer(x),
+            Term::Float(ref x) => self.encode_float(x),
         }
+    }
+    fn encode_float(&mut self, x: &Float) -> EncodeResult {
+        try!(self.writer.write_u8(NEW_FLOAT_EXT));
+        try!(self.writer.write_f64::<BigEndian>(x.value));
+        Ok(())
     }
     fn encode_atom(&mut self, x: &Atom) -> EncodeResult {
         if x.name.len() > 0xFFFF {

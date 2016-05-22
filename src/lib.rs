@@ -13,6 +13,7 @@ pub enum Term {
     Atom(Atom),
     FixInteger(FixInteger),
     BigInteger(BigInteger),
+    Float(Float),
 }
 //     List(List),
 //     ImproperList(ImproperList),
@@ -20,8 +21,6 @@ pub enum Term {
 //     Map(Map),
 //     Binary(Binary),
 //     BitStr(BitStr),
-
-//     Float(Float),
 //     Pid(Pid),
 //     Port(Port),
 //     Reference(Reference),
@@ -56,6 +55,13 @@ impl Term {
             None
         }
     }
+    pub fn as_float(&self) -> Option<&Float> {
+        if let Term::Float(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -63,6 +69,7 @@ impl fmt::Display for Term {
             Term::Atom(ref x) => x.fmt(f),
             Term::FixInteger(ref x) => x.fmt(f),
             Term::BigInteger(ref x) => x.fmt(f),
+            Term::Float(ref x) => x.fmt(f),
         }
     }
 }
@@ -79,6 +86,11 @@ impl convert::From<FixInteger> for Term {
 impl convert::From<BigInteger> for Term {
     fn from(x: BigInteger) -> Self {
         Term::BigInteger(x)
+    }
+}
+impl convert::From<Float> for Term {
+    fn from(x: Float) -> Self {
+        Term::Float(x)
     }
 }
 
@@ -131,5 +143,20 @@ impl convert::From<i64> for BigInteger {
 impl<'a> convert::From<&'a FixInteger> for BigInteger {
     fn from(i: &FixInteger) -> Self {
         BigInteger { value: BigInt::from(i.value) }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Float {
+    pub value: f64,
+}
+impl fmt::Display for Float {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.value)
+    }
+}
+impl convert::From<f64> for Float {
+    fn from(value: f64) -> Self {
+        Float { value: value }
     }
 }

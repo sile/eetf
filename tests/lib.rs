@@ -66,6 +66,23 @@ fn integer_test() {
                encode(Term::from(BigInteger::from(10000000000))));
 }
 
+#[test]
+fn float_test() {
+    // Display
+    assert_eq!("123", Float::from(123.0).to_string());
+    assert_eq!("123.4", Float::from(123.4).to_string());
+    assert_eq!("-123.4", Float::from(-123.4).to_string());
+
+    // Decode
+    assert_eq!(Some(&Float::from(123.456)),
+               decode(&[131, 70, 64, 94, 221, 47, 26, 159, 190, 119]).as_float()); // NEW_FLOAT_EXT
+    assert_eq!(Some(&Float::from(-123.456)),
+               decode(&[131, 70, 192, 94, 221, 47, 26, 159, 190, 119]).as_float()); // NEW_FLOAT_EXT
+    // Encode
+    assert_eq!(vec![131, 70, 64, 94, 221, 47, 26, 159, 190, 119],
+               encode(Term::from(Float::from(123.456))));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();
