@@ -139,6 +139,21 @@ fn reference_test() {
                encode(Term::from(Reference::from(("foo", 123)))));
 }
 
+#[test]
+fn external_fun_test() {
+    // Display
+    assert_eq!(r#"fun 'foo':'bar'/3"#,
+               ExternalFun::from(("foo", "bar", 3)).to_string());
+
+    // Decode
+    assert_eq!(Some(&ExternalFun::from(("foo", "bar", 3))),
+               decode(&[131,113,100,0,3,102,111,111,100,0,3,98,97,114,97,3]).as_external_fun());
+
+    // Encode
+    assert_eq!(vec![131,113,100,0,3,102,111,111,100,0,3,98,97,114,97,3],
+               encode(Term::from(ExternalFun::from(("foo", "bar", 3)))));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();

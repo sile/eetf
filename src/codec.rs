@@ -81,7 +81,7 @@ impl<R: io::Read> Decoder<R> {
             SMALL_BIG_EXT => self.decode_small_big_ext(),
             LARGE_BIG_EXT => self.decode_large_big_ext(),
             NEW_FUN_EXT => unimplemented!(),
-            EXPORT_EXT => unimplemented!(),
+            EXPORT_EXT => self.decode_export_ext(),
             NEW_REFERENCE_EXT => self.decode_new_reference_ext(),
             SMALL_ATOM_EXT => self.decode_small_atom_ext(),
             MAP_EXT => unimplemented!(),
@@ -152,6 +152,35 @@ impl<R: io::Read> Decoder<R> {
             node: node,
             id: id,
             creation: creation,
+        }))
+    }
+    fn decode_export_ext(&mut self) -> DecodeResult {
+        let module = try!(self.decode_term().and_then(|t| {
+            if let Some(a) = t.as_atom() {
+                Ok(a.clone())
+            } else {
+                aux::invalid_data_error(format!("Module must be an atom: value={}", t))
+            }
+        }));
+        let function = try!(self.decode_term().and_then(|t| {
+            if let Some(a) = t.as_atom() {
+                Ok(a.clone())
+            } else {
+                aux::invalid_data_error(format!("Function must be an atom: value={}", t))
+            }
+        }));
+        let arity = try!(self.decode_term().and_then(|t| {
+            match t.as_fix_integer() {
+                Some(&FixInteger { value }) if 0 <= value && value <= std::u8::MAX as i64 => {
+                    Ok(value as u8)
+                }
+                _ => aux::invalid_data_error(format!("Arity must be an u8: value={}", t)),
+            }
+        }));
+        Ok(Term::from(ExternalFun {
+            module: module,
+            function: function,
+            arity: arity,
         }))
     }
     fn decode_new_float_ext(&mut self) -> DecodeResult {
@@ -239,6 +268,7 @@ impl<W: io::Write> Encoder<W> {
             Term::Pid(ref x) => self.encode_pid(x),
             Term::Port(ref x) => self.encode_port(x),
             Term::Reference(ref x) => self.encode_reference(x),
+            Term::ExternalFun(ref x) => self.encode_external_fun(x),
         }
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
@@ -314,6 +344,13 @@ impl<W: io::Write> Encoder<W> {
         for n in &x.id {
             try!(self.writer.write_u32::<BigEndian>(*n));
         }
+        Ok(())
+    }
+    fn encode_external_fun(&mut self, x: &ExternalFun) -> EncodeResult {
+        try!(self.writer.write_u8(EXPORT_EXT));
+        try!(self.encode_atom(&x.module));
+        try!(self.encode_atom(&x.function));
+        try!(self.encode_fix_integer(&FixInteger::from(x.arity as i64)));
         Ok(())
     }
 }

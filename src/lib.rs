@@ -17,8 +17,9 @@ pub enum Term {
     Pid(Pid),
     Port(Port),
     Reference(Reference),
+    ExternalFun(ExternalFun),
 }
-//     ExternalFun(ExternalFun),
+
 //     InternalFun(InternalFun),
 //     Binary(Binary),
 //     BitStr(BitStr),
@@ -83,6 +84,13 @@ impl Term {
             None
         }
     }
+    pub fn as_external_fun(&self) -> Option<&ExternalFun> {
+        if let Term::ExternalFun(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -94,6 +102,7 @@ impl fmt::Display for Term {
             Term::Pid(ref x) => x.fmt(f),
             Term::Port(ref x) => x.fmt(f),
             Term::Reference(ref x) => x.fmt(f),
+            Term::ExternalFun(ref x) => x.fmt(f),
         }
     }
 }
@@ -130,6 +139,11 @@ impl convert::From<Port> for Term {
 impl convert::From<Reference> for Term {
     fn from(x: Reference) -> Self {
         Term::Reference(x)
+    }
+}
+impl convert::From<ExternalFun> for Term {
+    fn from(x: ExternalFun) -> Self {
+        Term::ExternalFun(x)
     }
 }
 
@@ -274,6 +288,27 @@ impl<'a> convert::From<(&'a str, Vec<u32>)> for Reference {
             node: Atom::from(node),
             id: id,
             creation: 0,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ExternalFun {
+    pub module: Atom,
+    pub function: Atom,
+    pub arity: u8,
+}
+impl fmt::Display for ExternalFun {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "fun {}:{}/{}", self.module, self.function, self.arity)
+    }
+}
+impl<'a, 'b> convert::From<(&'a str, &'b str, u8)> for ExternalFun {
+    fn from((module, function, arity): (&'a str, &'b str, u8)) -> Self {
+        ExternalFun {
+            module: Atom::from(module),
+            function: Atom::from(function),
+            arity: arity,
         }
     }
 }
