@@ -119,6 +119,26 @@ fn port_test() {
                encode(Term::from(Port::from(("nonode@nohost", 366)))));
 }
 
+#[test]
+fn reference_test() {
+    // Display
+    assert_eq!(r#"#Ref<'nonode@nohost'.1>"#,
+               Reference::from(("nonode@nohost", 1)).to_string());
+
+    // Decode
+    assert_eq!(Some(&Reference::from(("nonode@nohost", vec![138016, 262145, 0]))),
+               decode(&[131, 114, 0, 3, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111,
+                        104, 111, 115, 116, 0, 0, 2, 27, 32, 0, 4, 0, 1, 0, 0, 0, 0])
+                   .as_reference()); // NEW_REFERENCE_EXT
+    assert_eq!(Some(&Reference::from(("foo", vec![2]))),
+               decode(&[131,101,115,3,102,111,111,0,0,0,2,0])
+               .as_reference()); // NEW_REFERENCE_EXT
+
+    // Encode
+    assert_eq!(vec![131, 114, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 123],
+               encode(Term::from(Reference::from(("foo", 123)))));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();

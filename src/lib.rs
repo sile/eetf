@@ -16,8 +16,8 @@ pub enum Term {
     Float(Float),
     Pid(Pid),
     Port(Port),
+    Reference(Reference),
 }
-//     Reference(Reference),
 //     ExternalFun(ExternalFun),
 //     InternalFun(InternalFun),
 //     Binary(Binary),
@@ -76,6 +76,13 @@ impl Term {
             None
         }
     }
+    pub fn as_reference(&self) -> Option<&Reference> {
+        if let Term::Reference(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -86,6 +93,7 @@ impl fmt::Display for Term {
             Term::Float(ref x) => x.fmt(f),
             Term::Pid(ref x) => x.fmt(f),
             Term::Port(ref x) => x.fmt(f),
+            Term::Reference(ref x) => x.fmt(f),
         }
     }
 }
@@ -117,6 +125,11 @@ impl convert::From<Pid> for Term {
 impl convert::From<Port> for Term {
     fn from(x: Port) -> Self {
         Term::Port(x)
+    }
+}
+impl convert::From<Reference> for Term {
+    fn from(x: Reference) -> Self {
+        Term::Reference(x)
     }
 }
 
@@ -224,6 +237,40 @@ impl fmt::Display for Port {
 impl<'a> convert::From<(&'a str, u32)> for Port {
     fn from((node, id): (&'a str, u32)) -> Self {
         Port {
+            node: Atom::from(node),
+            id: id,
+            creation: 0,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Reference {
+    pub node: Atom,
+    pub id: Vec<u32>,
+    pub creation: u8,
+}
+impl fmt::Display for Reference {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "#Ref<{}", self.node));
+        for n in &self.id {
+            try!(write!(f, ".{}", n));
+        }
+        write!(f, ">")
+    }
+}
+impl<'a> convert::From<(&'a str, u32)> for Reference {
+    fn from((node, id): (&'a str, u32)) -> Self {
+        Reference {
+            node: Atom::from(node),
+            id: vec![id],
+            creation: 0,
+        }
+    }
+}
+impl<'a> convert::From<(&'a str, Vec<u32>)> for Reference {
+    fn from((node, id): (&'a str, Vec<u32>)) -> Self {
+        Reference {
             node: Atom::from(node),
             id: id,
             creation: 0,
