@@ -1,7 +1,14 @@
 [package]
 name = "eetf"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+description = "Library for encoding/decoding Erlang External Term Format"
+documentation = "http://sile.github.io/rustdocs/eetf/eetf/"
+homepage = "https://github.com/sile/eetf"
+repository = "https://github.com/sile/eetf"
+readme = "README.md"
+keywords = ["erlang"]
+license = "MIT"
 
 [dependencies]
 num = "0.1"
