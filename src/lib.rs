@@ -1,5 +1,6 @@
 extern crate num;
 extern crate byteorder;
+extern crate flate2;
 
 use std::fmt;
 use std::io;
