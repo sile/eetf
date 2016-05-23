@@ -1,3 +1,33 @@
+//! Library for encoding/decoding Erlang External Term Format.
+//!
+//! # Examples
+//!
+//! Decodes an atom:
+//!
+//! ```
+//! use std::io::Cursor;
+//! use eetf::{Term, Atom};
+//!
+//! let bytes = vec![131, 100, 0, 3, 102, 111, 111];
+//! let term = Term::decode(Cursor::new(&bytes)).unwrap();
+//! assert_eq!(term, Term::from(Atom::from("foo")));
+//! ```
+//!
+//! Encodes an atom:
+//!
+//! ```
+//! use eetf::{Term, Atom};
+//!
+//! let mut buf = Vec::new();
+//! let term = Term::from(Atom::from("foo"));
+//! term.encode(&mut buf).unwrap();
+//! assert_eq!(vec![131, 100, 0, 3, 102, 111, 111], buf);
+//! ```
+//!
+//! # Reference
+//!
+//! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
+//!
 extern crate num;
 extern crate byteorder;
 extern crate flate2;
@@ -9,6 +39,7 @@ use num::bigint::BigInt;
 
 mod codec;
 
+/// Term.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Term {
     Atom(Atom),
@@ -28,12 +59,17 @@ pub enum Term {
     Map(Map),
 }
 impl Term {
+    /// Decodes a term.
     pub fn decode<R: io::Read>(reader: R) -> io::Result<Self> {
         codec::Decoder::new(reader).decode()
     }
+
+    /// Encodes the term.
     pub fn encode<W: io::Write>(&self, writer: W) -> io::Result<()> {
         codec::Encoder::new(writer).encode(self)
     }
+
+    /// Extracts the atom value if it is an atom term.
     pub fn as_atom(&self) -> Option<&Atom> {
         if let Term::Atom(ref x) = *self {
             Some(x)
@@ -41,6 +77,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the atom value if it is an atom term.
     pub fn into_atom(self) -> Result<Atom, Term> {
         if let Term::Atom(x) = self {
             Ok(x)
@@ -48,6 +86,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the fix integer value if it is a fix integer term.
     pub fn as_fix_integer(&self) -> Option<&FixInteger> {
         if let Term::FixInteger(ref x) = *self {
             Some(x)
@@ -55,6 +95,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the fix integer value if it is a fix integer term.
     pub fn into_fix_integer(self) -> Result<FixInteger, Term> {
         if let Term::FixInteger(x) = self {
             Ok(x)
@@ -62,6 +104,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the big integer value if it is a big integer term.
     pub fn as_big_integer(&self) -> Option<&BigInteger> {
         if let Term::BigInteger(ref x) = *self {
             Some(x)
@@ -69,6 +113,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the big integer value if it is a big integer term.
     pub fn into_big_integer(self) -> Result<BigInteger, Term> {
         if let Term::BigInteger(x) = self {
             Ok(x)
@@ -76,6 +122,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the float value if it is a float term.
     pub fn as_float(&self) -> Option<&Float> {
         if let Term::Float(ref x) = *self {
             Some(x)
@@ -83,6 +131,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the float value if it is a float term.
     pub fn into_float(self) -> Result<Float, Term> {
         if let Term::Float(x) = self {
             Ok(x)
@@ -90,6 +140,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the pid value if it is a pid term.
     pub fn as_pid(&self) -> Option<&Pid> {
         if let Term::Pid(ref x) = *self {
             Some(x)
@@ -97,6 +149,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the pid value if it is a pid term.
     pub fn into_pid(self) -> Result<Pid, Term> {
         if let Term::Pid(x) = self {
             Ok(x)
@@ -104,6 +158,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the port value if it is a port term.
     pub fn as_port(&self) -> Option<&Port> {
         if let Term::Port(ref x) = *self {
             Some(x)
@@ -111,6 +167,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the port value if it is a port term.
     pub fn into_port(self) -> Result<Port, Term> {
         if let Term::Port(x) = self {
             Ok(x)
@@ -118,6 +176,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the reference value if it is a reference term.
     pub fn as_reference(&self) -> Option<&Reference> {
         if let Term::Reference(ref x) = *self {
             Some(x)
@@ -125,6 +185,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the reference value if it is a reference term.
     pub fn into_reference(self) -> Result<Reference, Term> {
         if let Term::Reference(x) = self {
             Ok(x)
@@ -132,6 +194,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the external functionif it is an external function term.
     pub fn as_external_fun(&self) -> Option<&ExternalFun> {
         if let Term::ExternalFun(ref x) = *self {
             Some(x)
@@ -139,6 +203,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the external function if it is an external function term.
     pub fn into_external_fun(self) -> Result<ExternalFun, Term> {
         if let Term::ExternalFun(x) = self {
             Ok(x)
@@ -146,6 +212,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the internal function if it is an internal function term.
     pub fn as_internal_fun(&self) -> Option<&InternalFun> {
         if let Term::InternalFun(ref x) = *self {
             Some(x)
@@ -153,6 +221,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the internal function if it is an internal function term.
     pub fn into_internal_fun(self) -> Result<InternalFun, Term> {
         if let Term::InternalFun(x) = self {
             Ok(x)
@@ -160,6 +230,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the binary value if it is a binary term.
     pub fn as_binary(&self) -> Option<&Binary> {
         if let Term::Binary(ref x) = *self {
             Some(x)
@@ -167,6 +239,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the binary value if it is a binary term.
     pub fn into_binary(self) -> Result<Binary, Term> {
         if let Term::Binary(x) = self {
             Ok(x)
@@ -174,6 +248,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the bitstring value if it is a bitstring term.
     pub fn as_bit_binary(&self) -> Option<&BitBinary> {
         if let Term::BitBinary(ref x) = *self {
             Some(x)
@@ -181,6 +257,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the bitstring value if it is a bitstring term.
     pub fn into_bit_binary(self) -> Result<BitBinary, Term> {
         if let Term::BitBinary(x) = self {
             Ok(x)
@@ -188,6 +266,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the list value if it is a list term.
     pub fn as_list(&self) -> Option<&List> {
         if let Term::List(ref x) = *self {
             Some(x)
@@ -195,6 +275,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the list value if it is a list term.
     pub fn into_list(self) -> Result<List, Term> {
         if let Term::List(x) = self {
             Ok(x)
@@ -202,6 +284,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the improper list value if it is an improper list term.
     pub fn as_improper_list(&self) -> Option<&ImproperList> {
         if let Term::ImproperList(ref x) = *self {
             Some(x)
@@ -209,6 +293,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the improper list value if it is an improper list term.
     pub fn into_improper_list(self) -> Result<ImproperList, Term> {
         if let Term::ImproperList(x) = self {
             Ok(x)
@@ -216,6 +302,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the tuple value if it is a tuple term.
     pub fn as_tuple(&self) -> Option<&Tuple> {
         if let Term::Tuple(ref x) = *self {
             Some(x)
@@ -223,6 +311,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the tuple value if it is a tuple term.
     pub fn into_tuple(self) -> Result<Tuple, Term> {
         if let Term::Tuple(x) = self {
             Ok(x)
@@ -230,6 +320,8 @@ impl Term {
             Err(self)
         }
     }
+
+    /// Extracts the map value if it is a map term.
     pub fn as_map(&self) -> Option<&Map> {
         if let Term::Map(ref x) = *self {
             Some(x)
@@ -237,6 +329,8 @@ impl Term {
             None
         }
     }
+
+    /// Converts the term to the map value if it is a map term.
     pub fn into_map(self) -> Result<Map, Term> {
         if let Term::Map(x) = self {
             Ok(x)
@@ -342,8 +436,10 @@ impl convert::From<Map> for Term {
     }
 }
 
+/// Atom.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Atom {
+    /// The name of the atom.
     pub name: String,
 }
 impl fmt::Display for Atom {
@@ -359,8 +455,10 @@ impl<'a> convert::From<&'a str> for Atom {
     }
 }
 
+/// Fixed width integer.
 #[derive(Debug, PartialEq, Clone)]
 pub struct FixInteger {
+    /// The value of the integer
     pub value: i32,
 }
 impl fmt::Display for FixInteger {
@@ -374,8 +472,10 @@ impl convert::From<i32> for FixInteger {
     }
 }
 
+/// Multiple precision integer.
 #[derive(Debug, PartialEq, Clone)]
 pub struct BigInteger {
+    /// The value of the integer
     pub value: BigInt,
 }
 impl fmt::Display for BigInteger {
@@ -394,8 +494,10 @@ impl<'a> convert::From<&'a FixInteger> for BigInteger {
     }
 }
 
+/// Floating point number
 #[derive(Debug, PartialEq, Clone)]
 pub struct Float {
+    /// The value of the number
     pub value: f64,
 }
 impl fmt::Display for Float {
@@ -409,6 +511,7 @@ impl convert::From<f64> for Float {
     }
 }
 
+/// Process Identifier.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pid {
     pub node: Atom,
@@ -432,6 +535,7 @@ impl<'a> convert::From<(&'a str, u32, u32)> for Pid {
     }
 }
 
+/// Port.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Port {
     pub node: Atom,
@@ -453,6 +557,7 @@ impl<'a> convert::From<(&'a str, u32)> for Port {
     }
 }
 
+/// Reference.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference {
     pub node: Atom,
@@ -487,6 +592,7 @@ impl<'a> convert::From<(&'a str, Vec<u32>)> for Reference {
     }
 }
 
+/// External Function.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExternalFun {
     pub module: Atom,
@@ -508,8 +614,10 @@ impl<'a, 'b> convert::From<(&'a str, &'b str, u8)> for ExternalFun {
     }
 }
 
+/// Internal Function.
 #[derive(Debug, PartialEq, Clone)]
 pub enum InternalFun {
+    /// Old representation.
     Old {
         module: Atom,
         pid: Pid,
@@ -517,6 +625,7 @@ pub enum InternalFun {
         index: i32,
         uniq: i32,
     },
+    /// New representation.
     New {
         module: Atom,
         arity: u8,
@@ -543,6 +652,7 @@ impl fmt::Display for InternalFun {
     }
 }
 
+/// Binary.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Binary {
     pub bytes: Vec<u8>,
@@ -570,6 +680,8 @@ impl convert::From<Vec<u8>> for Binary {
         Binary { bytes: bytes }
     }
 }
+
+/// Bit string.
 #[derive(Debug, PartialEq, Clone)]
 pub struct BitBinary {
     pub bytes: Vec<u8>,
@@ -612,14 +724,18 @@ impl convert::From<(Vec<u8>, u8)> for BitBinary {
     }
 }
 
+/// List.
 #[derive(Debug, PartialEq, Clone)]
 pub struct List {
     pub elements: Vec<Term>,
 }
 impl List {
+    /// Returns a nil value (i.e., an empty list).
     pub fn nil() -> Self {
         List { elements: Vec::new() }
     }
+
+    /// Returns `true` if it is nil value, otherwise `false`.
     pub fn is_nil(&self) -> bool {
         self.elements.is_empty()
     }
@@ -643,6 +759,7 @@ impl convert::From<Vec<Term>> for List {
     }
 }
 
+/// Improper list.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImproperList {
     pub elements: Vec<Term>,
@@ -671,6 +788,7 @@ impl convert::From<(Vec<Term>, Term)> for ImproperList {
     }
 }
 
+/// Tuple.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tuple {
     pub elements: Vec<Term>,
@@ -699,6 +817,7 @@ impl convert::From<Vec<Term>> for Tuple {
     }
 }
 
+/// Map.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Map {
     pub entries: Vec<(Term, Term)>,
