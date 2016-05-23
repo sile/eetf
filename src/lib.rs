@@ -19,8 +19,8 @@ pub enum Term {
     Reference(Reference),
     ExternalFun(ExternalFun),
     InternalFun(InternalFun),
+    Binary(Binary),
 }
-//     Binary(Binary),
 //     BitStr(BitStr),
 //     List(List),
 //     ImproperList(ImproperList),
@@ -160,6 +160,20 @@ impl Term {
             Err(self)
         }
     }
+    pub fn as_binary(&self) -> Option<&Binary> {
+        if let Term::Binary(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_binary(self) -> Result<Binary, Term> {
+        if let Term::Binary(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -173,6 +187,7 @@ impl fmt::Display for Term {
             Term::Reference(ref x) => x.fmt(f),
             Term::ExternalFun(ref x) => x.fmt(f),
             Term::InternalFun(ref x) => x.fmt(f),
+            Term::Binary(ref x) => x.fmt(f),
         }
     }
 }
@@ -219,6 +234,11 @@ impl convert::From<ExternalFun> for Term {
 impl convert::From<InternalFun> for Term {
     fn from(x: InternalFun) -> Self {
         Term::InternalFun(x)
+    }
+}
+impl convert::From<Binary> for Term {
+    fn from(x: Binary) -> Self {
+        Term::Binary(x)
     }
 }
 
@@ -420,5 +440,33 @@ impl fmt::Display for InternalFun {
                 write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
             }
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Binary {
+    pub bytes: Vec<u8>,
+}
+impl fmt::Display for Binary {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "<<"));
+        for (i, b) in self.bytes.iter().enumerate() {
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            try!(write!(f, "{}", b));
+        }
+        try!(write!(f, ">>"));
+        Ok(())
+    }
+}
+impl<'a> convert::From<(&'a [u8])> for Binary {
+    fn from(bytes: &'a [u8]) -> Self {
+        Binary { bytes: Vec::from(bytes) }
+    }
+}
+impl convert::From<Vec<u8>> for Binary {
+    fn from(bytes: Vec<u8>) -> Self {
+        Binary { bytes: bytes }
     }
 }

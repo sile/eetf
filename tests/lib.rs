@@ -178,6 +178,20 @@ fn internal_fun_test() {
     assert_eq!(Vec::from(&bytes[..]), encode(Term::from(term)));
 }
 
+#[test]
+fn binary_test() {
+    // Display
+    assert_eq!("<<1,2,3>>", Binary::from(vec![1, 2, 3]).to_string());
+
+    // Decode
+    assert_eq!(Ok(Binary::from(vec![1, 2, 3])),
+               decode(&[131, 109, 0, 0, 0, 3, 1, 2, 3]).into_binary());
+
+    // Encode
+    assert_eq!(vec![131, 109, 0, 0, 0, 3, 1, 2, 3],
+               encode(Term::from(Binary::from(vec![1, 2, 3]))));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();

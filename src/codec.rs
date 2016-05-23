@@ -78,7 +78,7 @@ impl<R: io::Read> Decoder<R> {
             NIL_EXT => unimplemented!(),
             STRING_EXT => unimplemented!(),
             LIST_EXT => unimplemented!(),
-            BINARY_EXT => unimplemented!(),
+            BINARY_EXT => self.decode_binary_ext(),
             SMALL_BIG_EXT => self.decode_small_big_ext(),
             LARGE_BIG_EXT => self.decode_large_big_ext(),
             NEW_FUN_EXT => self.decode_new_fun_ext(),
@@ -91,6 +91,12 @@ impl<R: io::Read> Decoder<R> {
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
         }
+    }
+    fn decode_binary_ext(&mut self) -> DecodeResult {
+        let size = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let mut buf = vec![0; size];
+        try!(self.reader.read_exact(&mut buf));
+        Ok(Term::from(Binary::from(buf)))
     }
     fn decode_pid_ext(&mut self) -> DecodeResult {
         let node = try!(self.decode_term()
@@ -321,7 +327,14 @@ impl<W: io::Write> Encoder<W> {
             Term::Reference(ref x) => self.encode_reference(x),
             Term::ExternalFun(ref x) => self.encode_external_fun(x),
             Term::InternalFun(ref x) => self.encode_internal_fun(x),
+            Term::Binary(ref x) => self.encode_binary(x),
         }
+    }
+    fn encode_binary(&mut self, x: &Binary) -> EncodeResult {
+        try!(self.writer.write_u8(BINARY_EXT));
+        try!(self.writer.write_u32::<BigEndian>(x.bytes.len() as u32));
+        try!(self.writer.write_all(&x.bytes));
+        Ok(())
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
         try!(self.writer.write_u8(NEW_FLOAT_EXT));
