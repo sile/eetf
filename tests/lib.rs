@@ -191,6 +191,7 @@ fn binary_test() {
     assert_eq!(vec![131, 109, 0, 0, 0, 3, 1, 2, 3],
                encode(Term::from(Binary::from(vec![1, 2, 3]))));
 }
+
 #[test]
 fn bit_binary_test() {
     // Display
@@ -206,6 +207,50 @@ fn bit_binary_test() {
     // Encode
     assert_eq!(vec![131, 77, 0, 0, 0, 3, 5, 1, 2, 24],
                encode(Term::from(BitBinary::from((vec![1, 2, 3], 5)))));
+}
+
+#[test]
+fn list_test() {
+    // Display
+    assert_eq!("['a',1]",
+               List::from(vec![Term::from(Atom::from("a")), Term::from(FixInteger::from(1))])
+                   .to_string());
+    assert_eq!("[]", List::nil().to_string());
+
+    // Decode
+    assert_eq!(Ok(List::nil()), decode(&[131, 106]).into_list()); // NIL_EXT
+    assert_eq!(Ok(List::from(vec![Term::from(FixInteger::from(1)),
+                                  Term::from(FixInteger::from(2))])),
+               decode(&[131, 107, 0, 2, 1, 2]).into_list()); // STRING_EXT
+    assert_eq!(Ok(List::from(vec![Term::from(Atom::from("a"))])),
+               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106]).into_list());
+
+    // Encode
+    assert_eq!(vec![131, 106], encode(Term::from(List::nil())));
+    assert_eq!(vec![131, 107, 0, 2, 1, 2],
+               encode(Term::from(List::from(vec![Term::from(FixInteger::from(1)),
+                                                 Term::from(FixInteger::from(2))]))));
+    assert_eq!(vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106],
+               encode(Term::from(List::from(vec![Term::from(Atom::from("a"))]))));
+}
+#[test]
+fn improper_list_test() {
+    // Display
+    assert_eq!("[0,'a'|1]",
+               ImproperList::from((vec![Term::from(FixInteger::from(0)),
+                                        Term::from(Atom::from("a"))],
+                                   Term::from(FixInteger::from(1))))
+                   .to_string());
+
+    // Decode
+    assert_eq!(Ok(ImproperList::from((vec![Term::from(Atom::from("a"))],
+                                      Term::from(FixInteger::from(1))))),
+               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1]).into_improper_list());
+
+    // Encode
+    assert_eq!(vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1],
+               encode(Term::from(ImproperList::from((vec![Term::from(Atom::from("a"))],
+                                                     Term::from(FixInteger::from(1)))))));
 }
 
 fn encode(term: Term) -> Vec<u8> {

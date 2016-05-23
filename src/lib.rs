@@ -21,9 +21,9 @@ pub enum Term {
     InternalFun(InternalFun),
     Binary(Binary),
     BitBinary(BitBinary),
+    List(List),
+    ImproperList(ImproperList),
 }
-//     List(List),
-//     ImproperList(ImproperList),
 //     Tuple(Tuple),
 //     Map(Map),
 // }
@@ -188,6 +188,34 @@ impl Term {
             Err(self)
         }
     }
+    pub fn as_list(&self) -> Option<&List> {
+        if let Term::List(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_list(self) -> Result<List, Term> {
+        if let Term::List(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
+    pub fn as_improper_list(&self) -> Option<&ImproperList> {
+        if let Term::ImproperList(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_improper_list(self) -> Result<ImproperList, Term> {
+        if let Term::ImproperList(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -203,6 +231,8 @@ impl fmt::Display for Term {
             Term::InternalFun(ref x) => x.fmt(f),
             Term::Binary(ref x) => x.fmt(f),
             Term::BitBinary(ref x) => x.fmt(f),
+            Term::List(ref x) => x.fmt(f),
+            Term::ImproperList(ref x) => x.fmt(f),
         }
     }
 }
@@ -259,6 +289,16 @@ impl convert::From<Binary> for Term {
 impl convert::From<BitBinary> for Term {
     fn from(x: BitBinary) -> Self {
         Term::BitBinary(x)
+    }
+}
+impl convert::From<List> for Term {
+    fn from(x: List) -> Self {
+        Term::List(x)
+    }
+}
+impl convert::From<ImproperList> for Term {
+    fn from(x: ImproperList) -> Self {
+        Term::ImproperList(x)
     }
 }
 
@@ -528,6 +568,65 @@ impl convert::From<(Vec<u8>, u8)> for BitBinary {
         BitBinary {
             bytes: bytes,
             tail_bits_size: tail_bits_size,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct List {
+    pub elements: Vec<Term>,
+}
+impl List {
+    pub fn nil() -> Self {
+        List { elements: Vec::new() }
+    }
+    pub fn is_nil(&self) -> bool {
+        self.elements.is_empty()
+    }
+}
+impl fmt::Display for List {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "["));
+        for (i, x) in self.elements.iter().enumerate() {
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            try!(write!(f, "{}", x));
+        }
+        try!(write!(f, "]"));
+        Ok(())
+    }
+}
+impl convert::From<Vec<Term>> for List {
+    fn from(elements: Vec<Term>) -> Self {
+        List { elements: elements }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ImproperList {
+    pub elements: Vec<Term>,
+    pub last: Box<Term>,
+}
+impl fmt::Display for ImproperList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "["));
+        for (i, x) in self.elements.iter().enumerate() {
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            try!(write!(f, "{}", x));
+        }
+        try!(write!(f, "|{}", self.last));
+        try!(write!(f, "]"));
+        Ok(())
+    }
+}
+impl convert::From<(Vec<Term>, Term)> for ImproperList {
+    fn from((elements, last): (Vec<Term>, Term)) -> Self {
+        ImproperList {
+            elements: elements,
+            last: Box::new(last),
         }
     }
 }

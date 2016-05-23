@@ -75,9 +75,9 @@ impl<R: io::Read> Decoder<R> {
             PID_EXT => self.decode_pid_ext(),
             SMALL_TUPLE_EXT => unimplemented!(),
             LARGE_TUPLE_EXT => unimplemented!(),
-            NIL_EXT => unimplemented!(),
-            STRING_EXT => unimplemented!(),
-            LIST_EXT => unimplemented!(),
+            NIL_EXT => self.decode_nil_ext(),
+            STRING_EXT => self.decode_string_ext(),
+            LIST_EXT => self.decode_list_ext(),
             BINARY_EXT => self.decode_binary_ext(),
             SMALL_BIG_EXT => self.decode_small_big_ext(),
             LARGE_BIG_EXT => self.decode_large_big_ext(),
@@ -90,6 +90,30 @@ impl<R: io::Read> Decoder<R> {
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
+        }
+    }
+    fn decode_nil_ext(&mut self) -> DecodeResult {
+        Ok(Term::from(List::nil()))
+    }
+    fn decode_string_ext(&mut self) -> DecodeResult {
+        let size = try!(self.reader.read_u16::<BigEndian>()) as usize;
+        let mut elements = Vec::with_capacity(size);
+        for _ in 0..size {
+            elements.push(Term::from(FixInteger::from(try!(self.reader.read_u8()) as i32)));
+        }
+        Ok(Term::from(List::from(elements)))
+    }
+    fn decode_list_ext(&mut self) -> DecodeResult {
+        let count = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let mut elements = Vec::with_capacity(count);
+        for _ in 0..count {
+            elements.push(try!(self.decode_term()));
+        }
+        let last = try!(self.decode_term());
+        if last.as_list().map(|l| l.is_nil()).unwrap_or(false) {
+            Ok(Term::from(List::from(elements)))
+        } else {
+            Ok(Term::from(ImproperList::from((elements, last))))
         }
     }
     fn decode_binary_ext(&mut self) -> DecodeResult {
@@ -340,7 +364,49 @@ impl<W: io::Write> Encoder<W> {
             Term::InternalFun(ref x) => self.encode_internal_fun(x),
             Term::Binary(ref x) => self.encode_binary(x),
             Term::BitBinary(ref x) => self.encode_bit_binary(x),
+            Term::List(ref x) => self.encode_list(x),
+            Term::ImproperList(ref x) => self.encode_improper_list(x),
         }
+    }
+    fn encode_nil(&mut self) -> EncodeResult {
+        try!(self.writer.write_u8(NIL_EXT));
+        Ok(())
+    }
+    fn encode_list(&mut self, x: &List) -> EncodeResult {
+        let to_byte = |e: &Term| {
+            e.as_fix_integer().and_then(|&FixInteger { value: i }| if i < 0x100 {
+                Some(i as u8)
+            } else {
+                None
+            })
+        };
+        if !x.elements.is_empty() && x.elements.len() <= std::u16::MAX as usize &&
+           x.elements.iter().all(|e| to_byte(e).is_some()) {
+            try!(self.writer.write_u8(STRING_EXT));
+            try!(self.writer.write_u16::<BigEndian>(x.elements.len() as u16));
+            for b in x.elements.iter().map(|e| to_byte(e).unwrap()) {
+                try!(self.writer.write_u8(b));
+            }
+        } else {
+            if !x.is_nil() {
+                try!(self.writer.write_u8(LIST_EXT));
+                try!(self.writer.write_u32::<BigEndian>(x.elements.len() as u32));
+                for e in &x.elements {
+                    try!(self.encode_term(e));
+                }
+            }
+            try!(self.encode_nil());
+        }
+        Ok(())
+    }
+    fn encode_improper_list(&mut self, x: &ImproperList) -> EncodeResult {
+        try!(self.writer.write_u8(LIST_EXT));
+        try!(self.writer.write_u32::<BigEndian>(x.elements.len() as u32));
+        for e in &x.elements {
+            try!(self.encode_term(e));
+        }
+        try!(self.encode_term(&x.last));
+        Ok(())
     }
     fn encode_binary(&mut self, x: &Binary) -> EncodeResult {
         try!(self.writer.write_u8(BINARY_EXT));
