@@ -6,6 +6,7 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
 use num::bigint::BigInt;
+use flate2::read::ZlibDecoder;
 use super::*;
 
 const VERSION: u8 = 131;
@@ -56,15 +57,21 @@ impl<R: io::Read> Decoder<R> {
         if version != VERSION {
             return aux::invalid_data_error(format!("Unsupported version: {} ", version));
         }
-        self.decode_term()
+        let tag = try!(self.reader.read_u8());
+        match tag {
+            COMPRESSED_TERM => self.decode_compressed_term(),
+            DISTRIBUTION_HEADER => unimplemented!(),
+            _ => self.decode_term_with_tag(tag),
+        }
     }
     fn decode_term(&mut self) -> DecodeResult {
         let tag = try!(self.reader.read_u8());
+        self.decode_term_with_tag(tag)
+    }
+    fn decode_term_with_tag(&mut self, tag: u8) -> DecodeResult {
         match tag {
-            DISTRIBUTION_HEADER => unimplemented!(),
             NEW_FLOAT_EXT => self.decode_new_float_ext(),
             BIT_BINARY_EXT => self.decode_bit_binary_ext(),
-            COMPRESSED_TERM => unimplemented!(),
             ATOM_CACHE_REF => unimplemented!(),
             SMALL_INTEGER_EXT => self.decode_small_integer_ext(),
             INTEGER_EXT => self.decode_integer_ext(),
@@ -91,6 +98,12 @@ impl<R: io::Read> Decoder<R> {
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
         }
+    }
+    fn decode_compressed_term(&mut self) -> DecodeResult {
+        let uncompressed_size = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let mut decoder = Decoder::new(ZlibDecoder::new_with_buf(&mut self.reader,
+                                                                 vec![0; uncompressed_size]));
+        decoder.decode_term()
     }
     fn decode_nil_ext(&mut self) -> DecodeResult {
         Ok(Term::from(List::nil()))
