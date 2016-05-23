@@ -233,6 +233,7 @@ fn list_test() {
     assert_eq!(vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106],
                encode(Term::from(List::from(vec![Term::from(Atom::from("a"))]))));
 }
+
 #[test]
 fn improper_list_test() {
     // Display
@@ -251,6 +252,24 @@ fn improper_list_test() {
     assert_eq!(vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1],
                encode(Term::from(ImproperList::from((vec![Term::from(Atom::from("a"))],
                                                      Term::from(FixInteger::from(1)))))));
+}
+
+#[test]
+fn tuple_test() {
+    // Display
+    assert_eq!("{'a',1}",
+               Tuple::from(vec![Term::from(Atom::from("a")), Term::from(FixInteger::from(1))])
+                   .to_string());
+    assert_eq!("{}", Tuple::from(vec![]).to_string());
+
+    // Decode
+    assert_eq!(Ok(Tuple::from(vec![Term::from(Atom::from("a")), Term::from(FixInteger::from(1))])),
+               decode(&[131, 104, 2, 100, 0, 1, 97, 97, 1]).into_tuple());
+
+    // Encode
+    assert_eq!(vec![131, 104, 2, 100, 0, 1, 97, 97, 1],
+               encode(Term::from(Tuple::from(vec![Term::from(Atom::from("a")),
+                                                  Term::from(FixInteger::from(1))]))));
 }
 
 fn encode(term: Term) -> Vec<u8> {

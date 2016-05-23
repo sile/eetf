@@ -73,8 +73,8 @@ impl<R: io::Read> Decoder<R> {
             REFERENCE_EXT => self.decode_reference_ext(),
             PORT_EXT => self.decode_port_ext(),
             PID_EXT => self.decode_pid_ext(),
-            SMALL_TUPLE_EXT => unimplemented!(),
-            LARGE_TUPLE_EXT => unimplemented!(),
+            SMALL_TUPLE_EXT => self.decode_small_tuple_ext(),
+            LARGE_TUPLE_EXT => self.decode_large_tuple_ext(),
             NIL_EXT => self.decode_nil_ext(),
             STRING_EXT => self.decode_string_ext(),
             LIST_EXT => self.decode_list_ext(),
@@ -115,6 +115,22 @@ impl<R: io::Read> Decoder<R> {
         } else {
             Ok(Term::from(ImproperList::from((elements, last))))
         }
+    }
+    fn decode_small_tuple_ext(&mut self) -> DecodeResult {
+        let count = try!(self.reader.read_u8()) as usize;
+        let mut elements = Vec::with_capacity(count);
+        for _ in 0..count {
+            elements.push(try!(self.decode_term()));
+        }
+        Ok(Term::from(Tuple::from(elements)))
+    }
+    fn decode_large_tuple_ext(&mut self) -> DecodeResult {
+        let count = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let mut elements = Vec::with_capacity(count);
+        for _ in 0..count {
+            elements.push(try!(self.decode_term()));
+        }
+        Ok(Term::from(Tuple::from(elements)))
     }
     fn decode_binary_ext(&mut self) -> DecodeResult {
         let size = try!(self.reader.read_u32::<BigEndian>()) as usize;
@@ -366,6 +382,7 @@ impl<W: io::Write> Encoder<W> {
             Term::BitBinary(ref x) => self.encode_bit_binary(x),
             Term::List(ref x) => self.encode_list(x),
             Term::ImproperList(ref x) => self.encode_improper_list(x),
+            Term::Tuple(ref x) => self.encode_tuple(x),
         }
     }
     fn encode_nil(&mut self) -> EncodeResult {
@@ -406,6 +423,19 @@ impl<W: io::Write> Encoder<W> {
             try!(self.encode_term(e));
         }
         try!(self.encode_term(&x.last));
+        Ok(())
+    }
+    fn encode_tuple(&mut self, x: &Tuple) -> EncodeResult {
+        if x.elements.len() < 0x100 {
+            try!(self.writer.write_u8(SMALL_TUPLE_EXT));
+            try!(self.writer.write_u8(x.elements.len() as u8));
+        } else {
+            try!(self.writer.write_u8(LARGE_TUPLE_EXT));
+            try!(self.writer.write_u32::<BigEndian>(x.elements.len() as u32));
+        }
+        for e in &x.elements {
+            try!(self.encode_term(e));
+        }
         Ok(())
     }
     fn encode_binary(&mut self, x: &Binary) -> EncodeResult {

@@ -23,8 +23,8 @@ pub enum Term {
     BitBinary(BitBinary),
     List(List),
     ImproperList(ImproperList),
+    Tuple(Tuple),
 }
-//     Tuple(Tuple),
 //     Map(Map),
 // }
 impl Term {
@@ -216,6 +216,20 @@ impl Term {
             Err(self)
         }
     }
+    pub fn as_tuple(&self) -> Option<&Tuple> {
+        if let Term::Tuple(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_tuple(self) -> Result<Tuple, Term> {
+        if let Term::Tuple(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -233,6 +247,7 @@ impl fmt::Display for Term {
             Term::BitBinary(ref x) => x.fmt(f),
             Term::List(ref x) => x.fmt(f),
             Term::ImproperList(ref x) => x.fmt(f),
+            Term::Tuple(ref x) => x.fmt(f),
         }
     }
 }
@@ -299,6 +314,11 @@ impl convert::From<List> for Term {
 impl convert::From<ImproperList> for Term {
     fn from(x: ImproperList) -> Self {
         Term::ImproperList(x)
+    }
+}
+impl convert::From<Tuple> for Term {
+    fn from(x: Tuple) -> Self {
+        Term::Tuple(x)
     }
 }
 
@@ -628,5 +648,33 @@ impl convert::From<(Vec<Term>, Term)> for ImproperList {
             elements: elements,
             last: Box::new(last),
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tuple {
+    pub elements: Vec<Term>,
+}
+impl Tuple {
+    pub fn nil() -> Self {
+        Tuple { elements: Vec::new() }
+    }
+}
+impl fmt::Display for Tuple {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "{{"));
+        for (i, x) in self.elements.iter().enumerate() {
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            try!(write!(f, "{}", x));
+        }
+        try!(write!(f, "}}"));
+        Ok(())
+    }
+}
+impl convert::From<Vec<Term>> for Tuple {
+    fn from(elements: Vec<Term>) -> Self {
+        Tuple { elements: elements }
     }
 }
