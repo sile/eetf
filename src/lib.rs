@@ -18,9 +18,8 @@ pub enum Term {
     Port(Port),
     Reference(Reference),
     ExternalFun(ExternalFun),
+    InternalFun(InternalFun),
 }
-
-//     InternalFun(InternalFun),
 //     Binary(Binary),
 //     BitStr(BitStr),
 //     List(List),
@@ -42,11 +41,25 @@ impl Term {
             None
         }
     }
+    pub fn into_atom(self) -> Result<Atom, Term> {
+        if let Term::Atom(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
     pub fn as_fix_integer(&self) -> Option<&FixInteger> {
         if let Term::FixInteger(ref x) = *self {
             Some(x)
         } else {
             None
+        }
+    }
+    pub fn into_fix_integer(self) -> Result<FixInteger, Term> {
+        if let Term::FixInteger(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
         }
     }
     pub fn as_big_integer(&self) -> Option<&BigInteger> {
@@ -56,11 +69,25 @@ impl Term {
             None
         }
     }
+    pub fn into_big_integer(self) -> Result<BigInteger, Term> {
+        if let Term::BigInteger(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
     pub fn as_float(&self) -> Option<&Float> {
         if let Term::Float(ref x) = *self {
             Some(x)
         } else {
             None
+        }
+    }
+    pub fn into_float(self) -> Result<Float, Term> {
+        if let Term::Float(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
         }
     }
     pub fn as_pid(&self) -> Option<&Pid> {
@@ -70,11 +97,25 @@ impl Term {
             None
         }
     }
+    pub fn into_pid(self) -> Result<Pid, Term> {
+        if let Term::Pid(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
     pub fn as_port(&self) -> Option<&Port> {
         if let Term::Port(ref x) = *self {
             Some(x)
         } else {
             None
+        }
+    }
+    pub fn into_port(self) -> Result<Port, Term> {
+        if let Term::Port(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
         }
     }
     pub fn as_reference(&self) -> Option<&Reference> {
@@ -84,11 +125,39 @@ impl Term {
             None
         }
     }
+    pub fn into_reference(self) -> Result<Reference, Term> {
+        if let Term::Reference(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
     pub fn as_external_fun(&self) -> Option<&ExternalFun> {
         if let Term::ExternalFun(ref x) = *self {
             Some(x)
         } else {
             None
+        }
+    }
+    pub fn into_external_fun(self) -> Result<ExternalFun, Term> {
+        if let Term::ExternalFun(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
+    pub fn as_internal_fun(&self) -> Option<&InternalFun> {
+        if let Term::InternalFun(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_internal_fun(self) -> Result<InternalFun, Term> {
+        if let Term::InternalFun(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
         }
     }
 }
@@ -103,6 +172,7 @@ impl fmt::Display for Term {
             Term::Port(ref x) => x.fmt(f),
             Term::Reference(ref x) => x.fmt(f),
             Term::ExternalFun(ref x) => x.fmt(f),
+            Term::InternalFun(ref x) => x.fmt(f),
         }
     }
 }
@@ -146,6 +216,11 @@ impl convert::From<ExternalFun> for Term {
         Term::ExternalFun(x)
     }
 }
+impl convert::From<InternalFun> for Term {
+    fn from(x: InternalFun) -> Self {
+        Term::InternalFun(x)
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Atom {
@@ -166,15 +241,15 @@ impl<'a> convert::From<&'a str> for Atom {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FixInteger {
-    pub value: i64,
+    pub value: i32,
 }
 impl fmt::Display for FixInteger {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.value)
     }
 }
-impl convert::From<i64> for FixInteger {
-    fn from(value: i64) -> Self {
+impl convert::From<i32> for FixInteger {
+    fn from(value: i32) -> Self {
         FixInteger { value: value }
     }
 }
@@ -309,6 +384,41 @@ impl<'a, 'b> convert::From<(&'a str, &'b str, u8)> for ExternalFun {
             module: Atom::from(module),
             function: Atom::from(function),
             arity: arity,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum InternalFun {
+    Old {
+        module: Atom,
+        pid: Pid,
+        free_vars: Vec<Term>,
+        index: i32,
+        uniq: i32,
+    },
+    New {
+        module: Atom,
+        arity: u8,
+        pid: Pid,
+        free_vars: Vec<Term>,
+        index: u32,
+        uniq: [u8; 16],
+        old_index: i32,
+        old_uniq: i32,
+    },
+}
+impl fmt::Display for InternalFun {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match *self {
+            InternalFun::Old { ref module, index, uniq, .. } => {
+                write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
+            }
+            InternalFun::New { ref module, index, uniq, .. } => {
+                use num::bigint::Sign;
+                let uniq = BigInt::from_bytes_be(Sign::Plus, &uniq);
+                write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
+            }
         }
     }
 }

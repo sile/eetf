@@ -1,6 +1,7 @@
 use std;
 use std::str;
 use std::io;
+use std::io::Write;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
@@ -80,25 +81,22 @@ impl<R: io::Read> Decoder<R> {
             BINARY_EXT => unimplemented!(),
             SMALL_BIG_EXT => self.decode_small_big_ext(),
             LARGE_BIG_EXT => self.decode_large_big_ext(),
-            NEW_FUN_EXT => unimplemented!(),
+            NEW_FUN_EXT => self.decode_new_fun_ext(),
             EXPORT_EXT => self.decode_export_ext(),
             NEW_REFERENCE_EXT => self.decode_new_reference_ext(),
             SMALL_ATOM_EXT => self.decode_small_atom_ext(),
             MAP_EXT => unimplemented!(),
-            FUN_EXT => unimplemented!(),
+            FUN_EXT => self.decode_fun_ext(),
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
             _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
         }
     }
     fn decode_pid_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
-            }
-        }));
+        let node = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
         Ok(Term::from(Pid {
             node: node,
             id: try!(self.reader.read_u32::<BigEndian>()),
@@ -107,13 +105,10 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_port_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
-            }
-        }));
+        let node = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
         Ok(Term::from(Port {
             node: node,
             id: try!(self.reader.read_u32::<BigEndian>()),
@@ -121,13 +116,10 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_reference_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
-            }
-        }));
+        let node = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
         Ok(Term::from(Reference {
             node: node,
             id: vec![try!(self.reader.read_u32::<BigEndian>())],
@@ -136,13 +128,10 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_new_reference_ext(&mut self) -> DecodeResult {
         let id_count = try!(self.reader.read_u16::<BigEndian>()) as usize;
-        let node = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Node must be an atom: value={}", t))
-            }
-        }));
+        let node = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
         let creation = try!(self.reader.read_u8());
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
@@ -155,23 +144,17 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_export_ext(&mut self) -> DecodeResult {
-        let module = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Module must be an atom: value={}", t))
-            }
-        }));
-        let function = try!(self.decode_term().and_then(|t| {
-            if let Some(a) = t.as_atom() {
-                Ok(a.clone())
-            } else {
-                aux::invalid_data_error(format!("Function must be an atom: value={}", t))
-            }
-        }));
+        let module = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
+        let function = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
         let arity = try!(self.decode_term().and_then(|t| {
             match t.as_fix_integer() {
-                Some(&FixInteger { value }) if 0 <= value && value <= std::u8::MAX as i64 => {
+                Some(&FixInteger { value }) if 0 <= value && value <= std::u8::MAX as i32 => {
                     Ok(value as u8)
                 }
                 _ => aux::invalid_data_error(format!("Arity must be an u8: value={}", t)),
@@ -181,6 +164,74 @@ impl<R: io::Read> Decoder<R> {
             module: module,
             function: function,
             arity: arity,
+        }))
+    }
+    fn decode_fun_ext(&mut self) -> DecodeResult {
+        let num_free = try!(self.reader.read_u32::<BigEndian>());
+        let pid = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_pid().or_else(|t| aux::invalid_data_error(format!("Not a pid: {}", t)))
+            }));
+        let module = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
+        let index = try!(self.decode_term().and_then(|t| {
+            t.into_fix_integer()
+                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
+        }));
+        let uniq = try!(self.decode_term().and_then(|t| {
+            t.into_fix_integer()
+                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
+        }));
+        let mut vars = Vec::with_capacity(num_free as usize);
+        for _ in 0..num_free {
+            vars.push(try!(self.decode_term()));
+        }
+        Ok(Term::from(InternalFun::Old {
+            module: module,
+            pid: pid,
+            free_vars: vars,
+            index: index.value,
+            uniq: uniq.value,
+        }))
+    }
+    fn decode_new_fun_ext(&mut self) -> DecodeResult {
+        let _size = try!(self.reader.read_u32::<BigEndian>());
+        let arity = try!(self.reader.read_u8());
+        let mut uniq = [0; 16];
+        try!(self.reader.read_exact(&mut uniq));
+        let index = try!(self.reader.read_u32::<BigEndian>());
+        let num_free = try!(self.reader.read_u32::<BigEndian>());
+        let module = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+            }));
+        let old_index = try!(self.decode_term().and_then(|t| {
+            t.into_fix_integer()
+                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
+        }));
+        let old_uniq = try!(self.decode_term().and_then(|t| {
+            t.into_fix_integer()
+                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
+        }));
+        let pid = try!(self.decode_term()
+            .and_then(|t| {
+                t.into_pid().or_else(|t| aux::invalid_data_error(format!("Not a pid: {}", t)))
+            }));
+        let mut vars = Vec::with_capacity(num_free as usize);
+        for _ in 0..num_free {
+            vars.push(try!(self.decode_term()));
+        }
+        Ok(Term::from(InternalFun::New {
+            module: module,
+            arity: arity,
+            pid: pid,
+            free_vars: vars,
+            index: index,
+            uniq: uniq,
+            old_index: old_index.value,
+            old_uniq: old_uniq.value,
         }))
     }
     fn decode_new_float_ext(&mut self) -> DecodeResult {
@@ -193,11 +244,11 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_small_integer_ext(&mut self) -> DecodeResult {
         let value = try!(self.reader.read_u8());
-        Ok(Term::from(FixInteger::from(value as i64)))
+        Ok(Term::from(FixInteger::from(value as i32)))
     }
     fn decode_integer_ext(&mut self) -> DecodeResult {
         let value = try!(self.reader.read_i32::<BigEndian>());
-        Ok(Term::from(FixInteger::from(value as i64)))
+        Ok(Term::from(FixInteger::from(value)))
     }
     fn decode_small_big_ext(&mut self) -> DecodeResult {
         let count = try!(self.reader.read_u8()) as usize;
@@ -269,6 +320,7 @@ impl<W: io::Write> Encoder<W> {
             Term::Port(ref x) => self.encode_port(x),
             Term::Reference(ref x) => self.encode_reference(x),
             Term::ExternalFun(ref x) => self.encode_external_fun(x),
+            Term::InternalFun(ref x) => self.encode_internal_fun(x),
         }
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
@@ -292,14 +344,12 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_fix_integer(&mut self, x: &FixInteger) -> EncodeResult {
-        if 0 <= x.value && x.value <= std::u8::MAX as i64 {
+        if 0 <= x.value && x.value <= std::u8::MAX as i32 {
             try!(self.writer.write_u8(SMALL_INTEGER_EXT));
             try!(self.writer.write_u8(x.value as u8));
-        } else if std::i32::MIN as i64 <= x.value && x.value <= std::i32::MAX as i64 {
+        } else {
             try!(self.writer.write_u8(INTEGER_EXT));
             try!(self.writer.write_i32::<BigEndian>(x.value as i32));
-        } else {
-            try!(self.encode_big_integer(&BigInteger::from(x)));
         }
         Ok(())
     }
@@ -350,7 +400,51 @@ impl<W: io::Write> Encoder<W> {
         try!(self.writer.write_u8(EXPORT_EXT));
         try!(self.encode_atom(&x.module));
         try!(self.encode_atom(&x.function));
-        try!(self.encode_fix_integer(&FixInteger::from(x.arity as i64)));
+        try!(self.encode_fix_integer(&FixInteger::from(x.arity as i32)));
+        Ok(())
+    }
+    fn encode_internal_fun(&mut self, x: &InternalFun) -> EncodeResult {
+        match *x {
+            InternalFun::Old { ref module, ref pid, ref free_vars, index, uniq } => {
+                try!(self.writer.write_u8(FUN_EXT));
+                try!(self.writer.write_u32::<BigEndian>(free_vars.len() as u32));
+                try!(self.encode_pid(pid));
+                try!(self.encode_atom(module));
+                try!(self.encode_fix_integer(&FixInteger::from(index)));
+                try!(self.encode_fix_integer(&FixInteger::from(uniq)));
+                for v in free_vars {
+                    try!(self.encode_term(v));
+                }
+            }
+            InternalFun::New { ref module,
+                               arity,
+                               ref pid,
+                               ref free_vars,
+                               index,
+                               ref uniq,
+                               old_index,
+                               old_uniq } => {
+                try!(self.writer.write_u8(NEW_FUN_EXT));
+
+                let mut buf = Vec::new();
+                {
+                    let mut tmp = Encoder::new(&mut buf);
+                    try!(tmp.writer.write_u8(arity));
+                    try!(tmp.writer.write_all(uniq));
+                    try!(tmp.writer.write_u32::<BigEndian>(index));
+                    try!(tmp.writer.write_u32::<BigEndian>(free_vars.len() as u32));
+                    try!(tmp.encode_atom(module));
+                    try!(tmp.encode_fix_integer(&FixInteger::from(old_index)));
+                    try!(tmp.encode_fix_integer(&FixInteger::from(old_uniq)));
+                    try!(tmp.encode_pid(pid));
+                    for v in free_vars {
+                        try!(tmp.encode_term(v));
+                    }
+                }
+                try!(self.writer.write_u32::<BigEndian>(4 + buf.len() as u32));
+                try!(self.writer.write_all(&buf));
+            }
+        }
         Ok(())
     }
 }
