@@ -319,8 +319,14 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Float::from(value)))
     }
     fn decode_float_ext(&mut self) -> DecodeResult {
-        // FIXME: Implement
-        unimplemented!()
+        let mut buf = [0; 31];
+        try!(self.reader.read_exact(&mut buf));
+        let float_str = try!(str::from_utf8(&mut buf)
+                .or_else(|e| aux::invalid_data_error(e.to_string())))
+            .trim_right_matches(0 as char);
+        let value = try!(float_str.parse::<f32>()
+            .or_else(|e| aux::invalid_data_error(e.to_string())));
+        Ok(Term::from(Float::from(value as f64)))
     }
     fn decode_small_integer_ext(&mut self) -> DecodeResult {
         let value = try!(self.reader.read_u8());

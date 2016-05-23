@@ -72,6 +72,11 @@ fn float_test() {
     assert_eq!("-123.4", Float::from(-123.4).to_string());
 
     // Decode
+    assert_eq!(Ok(Float::from("1.23".parse::<f32>().unwrap() as f64)),
+               decode(&[131, 99, 49, 46, 50, 50, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57,
+                        57, 57, 56, 50, 50, 52, 101, 43, 48, 48, 0, 0, 0, 0, 0])
+                   .into_float()); // FLOAT_EXT
+
     assert_eq!(Ok(Float::from(123.456)),
                // NEW_FLOAT_EXT
                decode(&[131, 70, 64, 94, 221, 47, 26, 159, 190, 119]).into_float());
