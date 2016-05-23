@@ -191,6 +191,22 @@ fn binary_test() {
     assert_eq!(vec![131, 109, 0, 0, 0, 3, 1, 2, 3],
                encode(Term::from(Binary::from(vec![1, 2, 3]))));
 }
+#[test]
+fn bit_binary_test() {
+    // Display
+    assert_eq!("<<1,2,3>>", BitBinary::from((vec![1, 2, 3], 8)).to_string());
+    assert_eq!("<<1,2>>", BitBinary::from((vec![1, 2, 3], 0)).to_string());
+    assert_eq!("<<1,2,3:5>>",
+               BitBinary::from((vec![1, 2, 3], 5)).to_string());
+
+    // Decode
+    assert_eq!(Ok(BitBinary::from((vec![1, 2, 3], 5))),
+               decode(&[131, 77, 0, 0, 0, 3, 5, 1, 2, 24]).into_bit_binary());
+
+    // Encode
+    assert_eq!(vec![131, 77, 0, 0, 0, 3, 5, 1, 2, 24],
+               encode(Term::from(BitBinary::from((vec![1, 2, 3], 5)))));
+}
 
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();

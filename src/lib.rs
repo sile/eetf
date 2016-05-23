@@ -20,8 +20,8 @@ pub enum Term {
     ExternalFun(ExternalFun),
     InternalFun(InternalFun),
     Binary(Binary),
+    BitBinary(BitBinary),
 }
-//     BitStr(BitStr),
 //     List(List),
 //     ImproperList(ImproperList),
 //     Tuple(Tuple),
@@ -174,6 +174,20 @@ impl Term {
             Err(self)
         }
     }
+    pub fn as_bit_binary(&self) -> Option<&BitBinary> {
+        if let Term::BitBinary(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_bit_binary(self) -> Result<BitBinary, Term> {
+        if let Term::BitBinary(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -188,6 +202,7 @@ impl fmt::Display for Term {
             Term::ExternalFun(ref x) => x.fmt(f),
             Term::InternalFun(ref x) => x.fmt(f),
             Term::Binary(ref x) => x.fmt(f),
+            Term::BitBinary(ref x) => x.fmt(f),
         }
     }
 }
@@ -239,6 +254,11 @@ impl convert::From<InternalFun> for Term {
 impl convert::From<Binary> for Term {
     fn from(x: Binary) -> Self {
         Term::Binary(x)
+    }
+}
+impl convert::From<BitBinary> for Term {
+    fn from(x: BitBinary) -> Self {
+        Term::BitBinary(x)
     }
 }
 
@@ -468,5 +488,46 @@ impl<'a> convert::From<(&'a [u8])> for Binary {
 impl convert::From<Vec<u8>> for Binary {
     fn from(bytes: Vec<u8>) -> Self {
         Binary { bytes: bytes }
+    }
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct BitBinary {
+    pub bytes: Vec<u8>,
+    pub tail_bits_size: u8,
+}
+impl fmt::Display for BitBinary {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "<<"));
+        for (i, b) in self.bytes.iter().enumerate() {
+            if i == self.bytes.len() - 1 && self.tail_bits_size == 0 {
+                break;
+            }
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            if i == self.bytes.len() - 1 && self.tail_bits_size < 8 {
+                try!(write!(f, "{}:{}", b, self.tail_bits_size));
+            } else {
+                try!(write!(f, "{}", b));
+            }
+        }
+        try!(write!(f, ">>"));
+        Ok(())
+    }
+}
+impl convert::From<Binary> for BitBinary {
+    fn from(binary: Binary) -> Self {
+        BitBinary {
+            bytes: binary.bytes,
+            tail_bits_size: 8,
+        }
+    }
+}
+impl convert::From<(Vec<u8>, u8)> for BitBinary {
+    fn from((bytes, tail_bits_size): (Vec<u8>, u8)) -> Self {
+        BitBinary {
+            bytes: bytes,
+            tail_bits_size: tail_bits_size,
+        }
     }
 }

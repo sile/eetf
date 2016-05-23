@@ -63,7 +63,7 @@ impl<R: io::Read> Decoder<R> {
         match tag {
             DISTRIBUTION_HEADER => unimplemented!(),
             NEW_FLOAT_EXT => self.decode_new_float_ext(),
-            BIT_BINARY_EXT => unimplemented!(),
+            BIT_BINARY_EXT => self.decode_bit_binary_ext(),
             COMPRESSED_TERM => unimplemented!(),
             ATOM_CACHE_REF => unimplemented!(),
             SMALL_INTEGER_EXT => self.decode_small_integer_ext(),
@@ -97,6 +97,17 @@ impl<R: io::Read> Decoder<R> {
         let mut buf = vec![0; size];
         try!(self.reader.read_exact(&mut buf));
         Ok(Term::from(Binary::from(buf)))
+    }
+    fn decode_bit_binary_ext(&mut self) -> DecodeResult {
+        let size = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let tail_bits_size = try!(self.reader.read_u8());
+        let mut buf = vec![0; size];
+        try!(self.reader.read_exact(&mut buf));
+        if !buf.is_empty() {
+            let last = buf[size - 1] >> (8 - tail_bits_size);
+            buf[size - 1] = last;
+        }
+        Ok(Term::from(BitBinary::from((buf, tail_bits_size))))
     }
     fn decode_pid_ext(&mut self) -> DecodeResult {
         let node = try!(self.decode_term()
@@ -328,12 +339,23 @@ impl<W: io::Write> Encoder<W> {
             Term::ExternalFun(ref x) => self.encode_external_fun(x),
             Term::InternalFun(ref x) => self.encode_internal_fun(x),
             Term::Binary(ref x) => self.encode_binary(x),
+            Term::BitBinary(ref x) => self.encode_bit_binary(x),
         }
     }
     fn encode_binary(&mut self, x: &Binary) -> EncodeResult {
         try!(self.writer.write_u8(BINARY_EXT));
         try!(self.writer.write_u32::<BigEndian>(x.bytes.len() as u32));
         try!(self.writer.write_all(&x.bytes));
+        Ok(())
+    }
+    fn encode_bit_binary(&mut self, x: &BitBinary) -> EncodeResult {
+        try!(self.writer.write_u8(BIT_BINARY_EXT));
+        try!(self.writer.write_u32::<BigEndian>(x.bytes.len() as u32));
+        try!(self.writer.write_u8(x.tail_bits_size));
+        if !x.bytes.is_empty() {
+            try!(self.writer.write_all(&x.bytes[0..x.bytes.len() - 1]));
+            try!(self.writer.write_u8(x.bytes[x.bytes.len() - 1] << (8 - x.tail_bits_size)));
+        }
         Ok(())
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
