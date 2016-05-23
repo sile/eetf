@@ -85,7 +85,7 @@ impl<R: io::Read> Decoder<R> {
             EXPORT_EXT => self.decode_export_ext(),
             NEW_REFERENCE_EXT => self.decode_new_reference_ext(),
             SMALL_ATOM_EXT => self.decode_small_atom_ext(),
-            MAP_EXT => unimplemented!(),
+            MAP_EXT => self.decode_map_ext(),
             FUN_EXT => self.decode_fun_ext(),
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
@@ -131,6 +131,16 @@ impl<R: io::Read> Decoder<R> {
             elements.push(try!(self.decode_term()));
         }
         Ok(Term::from(Tuple::from(elements)))
+    }
+    fn decode_map_ext(&mut self) -> DecodeResult {
+        let count = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let mut entries = Vec::with_capacity(count);
+        for _ in 0..count {
+            let k = try!(self.decode_term());
+            let v = try!(self.decode_term());
+            entries.push((k, v));
+        }
+        Ok(Term::from(Map::from(entries)))
     }
     fn decode_binary_ext(&mut self) -> DecodeResult {
         let size = try!(self.reader.read_u32::<BigEndian>()) as usize;
@@ -383,6 +393,7 @@ impl<W: io::Write> Encoder<W> {
             Term::List(ref x) => self.encode_list(x),
             Term::ImproperList(ref x) => self.encode_improper_list(x),
             Term::Tuple(ref x) => self.encode_tuple(x),
+            Term::Map(ref x) => self.encode_map(x),
         }
     }
     fn encode_nil(&mut self) -> EncodeResult {
@@ -435,6 +446,15 @@ impl<W: io::Write> Encoder<W> {
         }
         for e in &x.elements {
             try!(self.encode_term(e));
+        }
+        Ok(())
+    }
+    fn encode_map(&mut self, x: &Map) -> EncodeResult {
+        try!(self.writer.write_u8(MAP_EXT));
+        try!(self.writer.write_u32::<BigEndian>(x.entries.len() as u32));
+        for &(ref k, ref v) in &x.entries {
+            try!(self.encode_term(k));
+            try!(self.encode_term(v));
         }
         Ok(())
     }

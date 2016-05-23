@@ -24,9 +24,8 @@ pub enum Term {
     List(List),
     ImproperList(ImproperList),
     Tuple(Tuple),
+    Map(Map),
 }
-//     Map(Map),
-// }
 impl Term {
     pub fn decode<R: io::Read>(reader: R) -> io::Result<Self> {
         codec::Decoder::new(reader).decode()
@@ -230,6 +229,20 @@ impl Term {
             Err(self)
         }
     }
+    pub fn as_map(&self) -> Option<&Map> {
+        if let Term::Map(ref x) = *self {
+            Some(x)
+        } else {
+            None
+        }
+    }
+    pub fn into_map(self) -> Result<Map, Term> {
+        if let Term::Map(x) = self {
+            Ok(x)
+        } else {
+            Err(self)
+        }
+    }
 }
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -248,6 +261,7 @@ impl fmt::Display for Term {
             Term::List(ref x) => x.fmt(f),
             Term::ImproperList(ref x) => x.fmt(f),
             Term::Tuple(ref x) => x.fmt(f),
+            Term::Map(ref x) => x.fmt(f),
         }
     }
 }
@@ -319,6 +333,11 @@ impl convert::From<ImproperList> for Term {
 impl convert::From<Tuple> for Term {
     fn from(x: Tuple) -> Self {
         Term::Tuple(x)
+    }
+}
+impl convert::From<Map> for Term {
+    fn from(x: Map) -> Self {
+        Term::Map(x)
     }
 }
 
@@ -676,5 +695,28 @@ impl fmt::Display for Tuple {
 impl convert::From<Vec<Term>> for Tuple {
     fn from(elements: Vec<Term>) -> Self {
         Tuple { elements: elements }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Map {
+    pub entries: Vec<(Term, Term)>,
+}
+impl fmt::Display for Map {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(f, "#{{"));
+        for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
+            if i != 0 {
+                try!(write!(f, ","));
+            }
+            try!(write!(f, "{}=>{}", k, v));
+        }
+        try!(write!(f, "}}"));
+        Ok(())
+    }
+}
+impl convert::From<Vec<(Term, Term)>> for Map {
+    fn from(entries: Vec<(Term, Term)>) -> Self {
+        Map { entries: entries }
     }
 }

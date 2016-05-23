@@ -272,6 +272,26 @@ fn tuple_test() {
                                                   Term::from(FixInteger::from(1))]))));
 }
 
+#[test]
+fn map_test() {
+    let map = Map::from(vec![(Term::from(FixInteger::from(1)), Term::from(FixInteger::from(2))),
+                             (Term::from(Atom::from("a")), Term::from(Atom::from("b")))]);
+
+    // Display
+    assert_eq!("#{1=>2,'a'=>'b'}", map.to_string());
+
+    assert_eq!("#{}", Map::from(vec![]).to_string());
+
+    // Decode
+    assert_eq!(Ok(map.clone()),
+               decode(&[131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98])
+                   .into_map());
+
+    // Encode
+    assert_eq!(vec![131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98],
+               encode(Term::from(map)));
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();
