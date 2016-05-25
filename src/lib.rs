@@ -39,6 +39,11 @@ use num::bigint::BigInt;
 
 mod codec;
 
+pub use codec::EncodeResult;
+pub use codec::DecodeResult;
+pub use codec::EncodeError;
+pub use codec::DecodeError;
+
 /// Term.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Term {
@@ -60,12 +65,12 @@ pub enum Term {
 }
 impl Term {
     /// Decodes a term.
-    pub fn decode<R: io::Read>(reader: R) -> io::Result<Self> {
+    pub fn decode<R: io::Read>(reader: R) -> DecodeResult {
         codec::Decoder::new(reader).decode()
     }
 
     /// Encodes the term.
-    pub fn encode<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub fn encode<W: io::Write>(&self, writer: W) -> EncodeResult {
         codec::Encoder::new(writer).encode(self)
     }
 
@@ -340,7 +345,7 @@ impl Term {
     }
 }
 impl fmt::Display for Term {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Term::Atom(ref x) => x.fmt(f),
             Term::FixInteger(ref x) => x.fmt(f),
@@ -443,7 +448,7 @@ pub struct Atom {
     pub name: String,
 }
 impl fmt::Display for Atom {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
                "'{}'",
                self.name.replace("\\", "\\\\").replace("'", "\\'"))
@@ -462,7 +467,7 @@ pub struct FixInteger {
     pub value: i32,
 }
 impl fmt::Display for FixInteger {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value)
     }
 }
@@ -479,7 +484,7 @@ pub struct BigInteger {
     pub value: BigInt,
 }
 impl fmt::Display for BigInteger {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value)
     }
 }
@@ -501,7 +506,7 @@ pub struct Float {
     pub value: f64,
 }
 impl fmt::Display for Float {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value)
     }
 }
@@ -520,7 +525,7 @@ pub struct Pid {
     pub creation: u8,
 }
 impl fmt::Display for Pid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}.{}.{}>", self.node, self.id, self.serial)
     }
 }
@@ -543,7 +548,7 @@ pub struct Port {
     pub creation: u8,
 }
 impl fmt::Display for Port {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "#Port<{}.{}>", self.node, self.id)
     }
 }
@@ -565,7 +570,7 @@ pub struct Reference {
     pub creation: u8,
 }
 impl fmt::Display for Reference {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "#Ref<{}", self.node));
         for n in &self.id {
             try!(write!(f, ".{}", n));
@@ -600,7 +605,7 @@ pub struct ExternalFun {
     pub arity: u8,
 }
 impl fmt::Display for ExternalFun {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "fun {}:{}/{}", self.module, self.function, self.arity)
     }
 }
@@ -638,7 +643,7 @@ pub enum InternalFun {
     },
 }
 impl fmt::Display for InternalFun {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             InternalFun::Old { ref module, index, uniq, .. } => {
                 write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
@@ -658,7 +663,7 @@ pub struct Binary {
     pub bytes: Vec<u8>,
 }
 impl fmt::Display for Binary {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "<<"));
         for (i, b) in self.bytes.iter().enumerate() {
             if i != 0 {
@@ -688,7 +693,7 @@ pub struct BitBinary {
     pub tail_bits_size: u8,
 }
 impl fmt::Display for BitBinary {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "<<"));
         for (i, b) in self.bytes.iter().enumerate() {
             if i == self.bytes.len() - 1 && self.tail_bits_size == 0 {
@@ -741,7 +746,7 @@ impl List {
     }
 }
 impl fmt::Display for List {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "["));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
@@ -766,7 +771,7 @@ pub struct ImproperList {
     pub last: Box<Term>,
 }
 impl fmt::Display for ImproperList {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "["));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
@@ -799,7 +804,7 @@ impl Tuple {
     }
 }
 impl fmt::Display for Tuple {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{{"));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
@@ -823,7 +828,7 @@ pub struct Map {
     pub entries: Vec<(Term, Term)>,
 }
 impl fmt::Display for Map {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "#{{"));
         for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
             if i != 0 {

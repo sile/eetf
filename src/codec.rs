@@ -2,12 +2,131 @@ use std;
 use std::str;
 use std::io;
 use std::io::Write;
+use std::fmt;
+use std::error;
+use std::convert;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
 use num::bigint::BigInt;
 use flate2::read::ZlibDecoder;
 use super::*;
+
+/// Errors which can occur when decoding a term
+#[derive(Debug)]
+pub enum DecodeError {
+    Io(io::Error),
+    UnsupportedVersion {
+        version: u8,
+    },
+    UnknownTag {
+        tag: u8,
+    },
+    UnexpectedType {
+        value: Term,
+        expected: String,
+    },
+    OutOfRange {
+        value: i32,
+        range: std::ops::Range<i32>,
+    },
+}
+impl fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::DecodeError::*;
+        match *self {
+            Io(ref x) => x.fmt(f),
+            UnsupportedVersion { version } => write!(f, "Unsupported version {}", version),
+            UnknownTag { tag } => write!(f, "Unknown tag {}", tag),
+            UnexpectedType { ref value, ref expected } => {
+                write!(f, "{} is not a {}", value, expected)
+            }
+            OutOfRange { value, ref range } => {
+                write!(f,
+                       "{} is out of range {}..{}",
+                       value,
+                       range.start,
+                       range.end)
+            }
+        }
+    }
+}
+impl error::Error for DecodeError {
+    fn description(&self) -> &str {
+        use self::DecodeError::*;
+        match *self {
+            Io(ref x) => x.description(),
+            UnsupportedVersion { .. } => "Unsupported format version",
+            UnknownTag { .. } => "Unknown term tag",
+            UnexpectedType { .. } => "Unexpected term type",
+            OutOfRange { .. } => "Integer value is out of range",
+        }
+    }
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            DecodeError::Io(ref x) => x.cause(),
+            _ => None,
+        }
+    }
+}
+impl convert::From<io::Error> for DecodeError {
+    fn from(err: io::Error) -> DecodeError {
+        DecodeError::Io(err)
+    }
+}
+
+/// Errors which can occur when encoding a term
+#[derive(Debug)]
+pub enum EncodeError {
+    Io(io::Error),
+    TooLongAtomName(Atom),
+    TooLargeInteger(BigInteger),
+    TooLargeReferenceId(Reference),
+}
+impl fmt::Display for EncodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::EncodeError::*;
+        match *self {
+            Io(ref x) => x.fmt(f),
+            TooLongAtomName(ref x) => write!(f, "Too long atom name: {} bytes", x.name.len()),
+            TooLargeInteger(ref x) => {
+                write!(f,
+                       "Too large integer value: {} bytes required to encode",
+                       x.value.to_bytes_le().1.len())
+            }
+            TooLargeReferenceId(ref x) => {
+                write!(f,
+                       "Too large reference ID: {} bytes required to encode",
+                       x.id.len() * 4)
+            }
+        }
+    }
+}
+impl error::Error for EncodeError {
+    fn description(&self) -> &str {
+        use self::EncodeError::*;
+        match *self {
+            Io(ref x) => x.description(),
+            TooLongAtomName(_) => "Too long atom name",
+            TooLargeInteger(_) => "Too large integer value",
+            TooLargeReferenceId(_) => "Too large reference identifier",
+        }
+    }
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            EncodeError::Io(ref x) => x.cause(),
+            _ => None,
+        }
+    }
+}
+impl convert::From<io::Error> for EncodeError {
+    fn from(err: io::Error) -> EncodeError {
+        EncodeError::Io(err)
+    }
+}
+
+pub type DecodeResult = Result<Term, DecodeError>;
+pub type EncodeResult = Result<(), EncodeError>;
 
 const VERSION: u8 = 131;
 
@@ -40,7 +159,6 @@ const FUN_EXT: u8 = 117;
 const ATOM_UTF8_EXT: u8 = 118;
 const SMALL_ATOM_UTF8_EXT: u8 = 119;
 
-pub type DecodeResult = io::Result<Term>;
 pub struct Decoder<R> {
     reader: R,
     buf: Vec<u8>,
@@ -55,7 +173,7 @@ impl<R: io::Read> Decoder<R> {
     pub fn decode(mut self) -> DecodeResult {
         let version = try!(self.reader.read_u8());
         if version != VERSION {
-            return aux::invalid_data_error(format!("Unsupported version: {} ", version));
+            return Err(DecodeError::UnsupportedVersion { version: version });
         }
         let tag = try!(self.reader.read_u8());
         match tag {
@@ -96,7 +214,7 @@ impl<R: io::Read> Decoder<R> {
             FUN_EXT => self.decode_fun_ext(),
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
-            _ => aux::invalid_data_error(format!("Unknown tag: {}", tag)),
+            _ => Err(DecodeError::UnknownTag { tag: tag }),
         }
     }
     fn decode_compressed_term(&mut self) -> DecodeResult {
@@ -173,10 +291,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(BitBinary::from((buf, tail_bits_size))))
     }
     fn decode_pid_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
+        let node = try!(self.decode_term().and_then(aux::term_into_atom));
         Ok(Term::from(Pid {
             node: node,
             id: try!(self.reader.read_u32::<BigEndian>()),
@@ -187,7 +302,12 @@ impl<R: io::Read> Decoder<R> {
     fn decode_port_ext(&mut self) -> DecodeResult {
         let node = try!(self.decode_term()
             .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
+                t.into_atom().map_err(|t| {
+                    DecodeError::UnexpectedType {
+                        value: t,
+                        expected: "Atom".to_string(),
+                    }
+                })
             }));
         Ok(Term::from(Port {
             node: node,
@@ -196,10 +316,7 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_reference_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
+        let node = try!(self.decode_term().and_then(aux::term_into_atom));
         Ok(Term::from(Reference {
             node: node,
             id: vec![try!(self.reader.read_u32::<BigEndian>())],
@@ -208,10 +325,7 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_new_reference_ext(&mut self) -> DecodeResult {
         let id_count = try!(self.reader.read_u16::<BigEndian>()) as usize;
-        let node = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
+        let node = try!(self.decode_term().and_then(aux::term_into_atom));
         let creation = try!(self.reader.read_u8());
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
@@ -224,22 +338,10 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_export_ext(&mut self) -> DecodeResult {
-        let module = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
-        let function = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
-        let arity = try!(self.decode_term().and_then(|t| {
-            match t.as_fix_integer() {
-                Some(&FixInteger { value }) if 0 <= value && value <= std::u8::MAX as i32 => {
-                    Ok(value as u8)
-                }
-                _ => aux::invalid_data_error(format!("Arity must be an u8: value={}", t)),
-            }
-        }));
+        let module = try!(self.decode_term().and_then(aux::term_into_atom));
+        let function = try!(self.decode_term().and_then(aux::term_into_atom));
+        let arity = try!(self.decode_term()
+            .and_then(|t| aux::term_into_ranged_integer(t, 0..0xFF))) as u8;
         Ok(Term::from(ExternalFun {
             module: module,
             function: function,
@@ -248,22 +350,10 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_fun_ext(&mut self) -> DecodeResult {
         let num_free = try!(self.reader.read_u32::<BigEndian>());
-        let pid = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_pid().or_else(|t| aux::invalid_data_error(format!("Not a pid: {}", t)))
-            }));
-        let module = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
-        let index = try!(self.decode_term().and_then(|t| {
-            t.into_fix_integer()
-                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
-        }));
-        let uniq = try!(self.decode_term().and_then(|t| {
-            t.into_fix_integer()
-                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
-        }));
+        let pid = try!(self.decode_term().and_then(aux::term_into_pid));
+        let module = try!(self.decode_term().and_then(aux::term_into_atom));
+        let index = try!(self.decode_term().and_then(aux::term_into_fix_integer));
+        let uniq = try!(self.decode_term().and_then(aux::term_into_fix_integer));
         let mut vars = Vec::with_capacity(num_free as usize);
         for _ in 0..num_free {
             vars.push(try!(self.decode_term()));
@@ -283,22 +373,10 @@ impl<R: io::Read> Decoder<R> {
         try!(self.reader.read_exact(&mut uniq));
         let index = try!(self.reader.read_u32::<BigEndian>());
         let num_free = try!(self.reader.read_u32::<BigEndian>());
-        let module = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_atom().or_else(|t| aux::invalid_data_error(format!("Not an atom: {}", t)))
-            }));
-        let old_index = try!(self.decode_term().and_then(|t| {
-            t.into_fix_integer()
-                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
-        }));
-        let old_uniq = try!(self.decode_term().and_then(|t| {
-            t.into_fix_integer()
-                .or_else(|t| aux::invalid_data_error(format!("Not an integer: {}", t)))
-        }));
-        let pid = try!(self.decode_term()
-            .and_then(|t| {
-                t.into_pid().or_else(|t| aux::invalid_data_error(format!("Not a pid: {}", t)))
-            }));
+        let module = try!(self.decode_term().and_then(aux::term_into_atom));
+        let old_index = try!(self.decode_term().and_then(aux::term_into_fix_integer));
+        let old_uniq = try!(self.decode_term().and_then(aux::term_into_fix_integer));
+        let pid = try!(self.decode_term().and_then(aux::term_into_pid));
         let mut vars = Vec::with_capacity(num_free as usize);
         for _ in 0..num_free {
             vars.push(try!(self.decode_term()));
@@ -384,7 +462,6 @@ impl<R: io::Read> Decoder<R> {
     }
 }
 
-pub type EncodeResult = io::Result<()>;
 pub struct Encoder<W> {
     writer: W,
 }
@@ -500,7 +577,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_atom(&mut self, x: &Atom) -> EncodeResult {
         if x.name.len() > 0xFFFF {
-            return aux::invalid_data_error(format!("Too long atom name: length={}", x.name.len()));
+            return Err(EncodeError::TooLongAtomName(x.clone()));
         }
 
         let is_ascii = x.name.as_bytes().iter().all(|&c| c < 0x80);
@@ -532,7 +609,7 @@ impl<W: io::Write> Encoder<W> {
             try!(self.writer.write_u8(LARGE_BIG_EXT));
             try!(self.writer.write_u32::<BigEndian>(bytes.len() as u32));
         } else {
-            return aux::invalid_data_error(format!("Too large integer: {} bytes", bytes.len()));
+            return Err(EncodeError::TooLargeInteger(x.clone()));
         }
         try!(self.writer.write_u8(aux::sign_to_byte(sign)));
         try!(self.writer.write_all(&bytes));
@@ -556,7 +633,7 @@ impl<W: io::Write> Encoder<W> {
     fn encode_reference(&mut self, x: &Reference) -> EncodeResult {
         try!(self.writer.write_u8(NEW_REFERENCE_EXT));
         if x.id.len() > std::u16::MAX as usize {
-            return aux::invalid_data_error(format!("Too large ID: {}*4 bytes", x.id.len()));
+            return Err(EncodeError::TooLargeReferenceId(x.clone()));
         }
         try!(self.writer.write_u16::<BigEndian>(x.id.len() as u16));
         try!(self.encode_atom(&x.node));
@@ -622,8 +699,48 @@ impl<W: io::Write> Encoder<W> {
 mod aux {
     use std::str;
     use std::io;
+    use std::ops::Range;
     use num::bigint::Sign;
 
+    pub fn term_into_atom(t: ::Term) -> Result<::Atom, super::DecodeError> {
+        t.into_atom().map_err(|t| {
+            super::DecodeError::UnexpectedType {
+                value: t,
+                expected: "Atom".to_string(),
+            }
+        })
+    }
+    pub fn term_into_pid(t: ::Term) -> Result<::Pid, super::DecodeError> {
+        t.into_pid().map_err(|t| {
+            super::DecodeError::UnexpectedType {
+                value: t,
+                expected: "Pid".to_string(),
+            }
+        })
+    }
+    pub fn term_into_fix_integer(t: ::Term) -> Result<::FixInteger, super::DecodeError> {
+        t.into_fix_integer().map_err(|t| {
+            super::DecodeError::UnexpectedType {
+                value: t,
+                expected: "FixInteger".to_string(),
+            }
+        })
+    }
+    pub fn term_into_ranged_integer(t: ::Term,
+                                    range: Range<i32>)
+                                    -> Result<i32, super::DecodeError> {
+        term_into_fix_integer(t).and_then(|i| {
+            let n = i.value;
+            if range.start <= n && n <= range.end {
+                Ok(n)
+            } else {
+                Err(super::DecodeError::OutOfRange {
+                    value: n,
+                    range: range,
+                })
+            }
+        })
+    }
     pub fn invalid_data_error<T>(message: String) -> io::Result<T> {
         Err(io::Error::new(io::ErrorKind::InvalidData, message))
     }
