@@ -4,7 +4,7 @@ use std::io;
 use std::io::Write;
 use std::fmt;
 use std::error;
-use std::convert;
+use std::convert::From;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
@@ -69,7 +69,7 @@ impl error::Error for DecodeError {
         }
     }
 }
-impl convert::From<io::Error> for DecodeError {
+impl From<io::Error> for DecodeError {
     fn from(err: io::Error) -> DecodeError {
         DecodeError::Io(err)
     }
@@ -119,7 +119,7 @@ impl error::Error for EncodeError {
         }
     }
 }
-impl convert::From<io::Error> for EncodeError {
+impl From<io::Error> for EncodeError {
     fn from(err: io::Error) -> EncodeError {
         EncodeError::Io(err)
     }

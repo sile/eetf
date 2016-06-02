@@ -34,10 +34,12 @@ extern crate flate2;
 
 use std::fmt;
 use std::io;
-use std::convert;
+use std::convert::From;
 use num::bigint::BigInt;
 
 mod codec;
+pub mod convert;
+pub mod pattern;
 
 pub use codec::EncodeResult;
 pub use codec::DecodeResult;
@@ -365,77 +367,77 @@ impl fmt::Display for Term {
         }
     }
 }
-impl convert::From<Atom> for Term {
+impl From<Atom> for Term {
     fn from(x: Atom) -> Self {
         Term::Atom(x)
     }
 }
-impl convert::From<FixInteger> for Term {
+impl From<FixInteger> for Term {
     fn from(x: FixInteger) -> Self {
         Term::FixInteger(x)
     }
 }
-impl convert::From<BigInteger> for Term {
+impl From<BigInteger> for Term {
     fn from(x: BigInteger) -> Self {
         Term::BigInteger(x)
     }
 }
-impl convert::From<Float> for Term {
+impl From<Float> for Term {
     fn from(x: Float) -> Self {
         Term::Float(x)
     }
 }
-impl convert::From<Pid> for Term {
+impl From<Pid> for Term {
     fn from(x: Pid) -> Self {
         Term::Pid(x)
     }
 }
-impl convert::From<Port> for Term {
+impl From<Port> for Term {
     fn from(x: Port) -> Self {
         Term::Port(x)
     }
 }
-impl convert::From<Reference> for Term {
+impl From<Reference> for Term {
     fn from(x: Reference) -> Self {
         Term::Reference(x)
     }
 }
-impl convert::From<ExternalFun> for Term {
+impl From<ExternalFun> for Term {
     fn from(x: ExternalFun) -> Self {
         Term::ExternalFun(x)
     }
 }
-impl convert::From<InternalFun> for Term {
+impl From<InternalFun> for Term {
     fn from(x: InternalFun) -> Self {
         Term::InternalFun(x)
     }
 }
-impl convert::From<Binary> for Term {
+impl From<Binary> for Term {
     fn from(x: Binary) -> Self {
         Term::Binary(x)
     }
 }
-impl convert::From<BitBinary> for Term {
+impl From<BitBinary> for Term {
     fn from(x: BitBinary) -> Self {
         Term::BitBinary(x)
     }
 }
-impl convert::From<List> for Term {
+impl From<List> for Term {
     fn from(x: List) -> Self {
         Term::List(x)
     }
 }
-impl convert::From<ImproperList> for Term {
+impl From<ImproperList> for Term {
     fn from(x: ImproperList) -> Self {
         Term::ImproperList(x)
     }
 }
-impl convert::From<Tuple> for Term {
+impl From<Tuple> for Term {
     fn from(x: Tuple) -> Self {
         Term::Tuple(x)
     }
 }
-impl convert::From<Map> for Term {
+impl From<Map> for Term {
     fn from(x: Map) -> Self {
         Term::Map(x)
     }
@@ -454,7 +456,7 @@ impl fmt::Display for Atom {
                self.name.replace("\\", "\\\\").replace("'", "\\'"))
     }
 }
-impl<'a> convert::From<&'a str> for Atom {
+impl<'a> From<&'a str> for Atom {
     fn from(name: &'a str) -> Self {
         Atom { name: name.to_string() }
     }
@@ -471,7 +473,7 @@ impl fmt::Display for FixInteger {
         write!(f, "{}", self.value)
     }
 }
-impl convert::From<i32> for FixInteger {
+impl From<i32> for FixInteger {
     fn from(value: i32) -> Self {
         FixInteger { value: value }
     }
@@ -488,12 +490,12 @@ impl fmt::Display for BigInteger {
         write!(f, "{}", self.value)
     }
 }
-impl convert::From<i64> for BigInteger {
+impl From<i64> for BigInteger {
     fn from(value: i64) -> Self {
         BigInteger { value: BigInt::from(value) }
     }
 }
-impl<'a> convert::From<&'a FixInteger> for BigInteger {
+impl<'a> From<&'a FixInteger> for BigInteger {
     fn from(i: &FixInteger) -> Self {
         BigInteger { value: BigInt::from(i.value) }
     }
@@ -510,7 +512,7 @@ impl fmt::Display for Float {
         write!(f, "{}", self.value)
     }
 }
-impl convert::From<f64> for Float {
+impl From<f64> for Float {
     fn from(value: f64) -> Self {
         Float { value: value }
     }
@@ -529,7 +531,7 @@ impl fmt::Display for Pid {
         write!(f, "<{}.{}.{}>", self.node, self.id, self.serial)
     }
 }
-impl<'a> convert::From<(&'a str, u32, u32)> for Pid {
+impl<'a> From<(&'a str, u32, u32)> for Pid {
     fn from((node, id, serial): (&'a str, u32, u32)) -> Self {
         Pid {
             node: Atom::from(node),
@@ -552,7 +554,7 @@ impl fmt::Display for Port {
         write!(f, "#Port<{}.{}>", self.node, self.id)
     }
 }
-impl<'a> convert::From<(&'a str, u32)> for Port {
+impl<'a> From<(&'a str, u32)> for Port {
     fn from((node, id): (&'a str, u32)) -> Self {
         Port {
             node: Atom::from(node),
@@ -578,7 +580,7 @@ impl fmt::Display for Reference {
         write!(f, ">")
     }
 }
-impl<'a> convert::From<(&'a str, u32)> for Reference {
+impl<'a> From<(&'a str, u32)> for Reference {
     fn from((node, id): (&'a str, u32)) -> Self {
         Reference {
             node: Atom::from(node),
@@ -587,7 +589,7 @@ impl<'a> convert::From<(&'a str, u32)> for Reference {
         }
     }
 }
-impl<'a> convert::From<(&'a str, Vec<u32>)> for Reference {
+impl<'a> From<(&'a str, Vec<u32>)> for Reference {
     fn from((node, id): (&'a str, Vec<u32>)) -> Self {
         Reference {
             node: Atom::from(node),
@@ -609,7 +611,7 @@ impl fmt::Display for ExternalFun {
         write!(f, "fun {}:{}/{}", self.module, self.function, self.arity)
     }
 }
-impl<'a, 'b> convert::From<(&'a str, &'b str, u8)> for ExternalFun {
+impl<'a, 'b> From<(&'a str, &'b str, u8)> for ExternalFun {
     fn from((module, function, arity): (&'a str, &'b str, u8)) -> Self {
         ExternalFun {
             module: Atom::from(module),
@@ -675,12 +677,12 @@ impl fmt::Display for Binary {
         Ok(())
     }
 }
-impl<'a> convert::From<(&'a [u8])> for Binary {
+impl<'a> From<(&'a [u8])> for Binary {
     fn from(bytes: &'a [u8]) -> Self {
         Binary { bytes: Vec::from(bytes) }
     }
 }
-impl convert::From<Vec<u8>> for Binary {
+impl From<Vec<u8>> for Binary {
     fn from(bytes: Vec<u8>) -> Self {
         Binary { bytes: bytes }
     }
@@ -712,7 +714,7 @@ impl fmt::Display for BitBinary {
         Ok(())
     }
 }
-impl convert::From<Binary> for BitBinary {
+impl From<Binary> for BitBinary {
     fn from(binary: Binary) -> Self {
         BitBinary {
             bytes: binary.bytes,
@@ -720,7 +722,7 @@ impl convert::From<Binary> for BitBinary {
         }
     }
 }
-impl convert::From<(Vec<u8>, u8)> for BitBinary {
+impl From<(Vec<u8>, u8)> for BitBinary {
     fn from((bytes, tail_bits_size): (Vec<u8>, u8)) -> Self {
         BitBinary {
             bytes: bytes,
@@ -758,7 +760,7 @@ impl fmt::Display for List {
         Ok(())
     }
 }
-impl convert::From<Vec<Term>> for List {
+impl From<Vec<Term>> for List {
     fn from(elements: Vec<Term>) -> Self {
         List { elements: elements }
     }
@@ -784,7 +786,7 @@ impl fmt::Display for ImproperList {
         Ok(())
     }
 }
-impl convert::From<(Vec<Term>, Term)> for ImproperList {
+impl From<(Vec<Term>, Term)> for ImproperList {
     fn from((elements, last): (Vec<Term>, Term)) -> Self {
         ImproperList {
             elements: elements,
@@ -816,7 +818,7 @@ impl fmt::Display for Tuple {
         Ok(())
     }
 }
-impl convert::From<Vec<Term>> for Tuple {
+impl From<Vec<Term>> for Tuple {
     fn from(elements: Vec<Term>) -> Self {
         Tuple { elements: elements }
     }
@@ -840,7 +842,7 @@ impl fmt::Display for Map {
         Ok(())
     }
 }
-impl convert::From<Vec<(Term, Term)>> for Map {
+impl From<Vec<(Term, Term)>> for Map {
     fn from(entries: Vec<(Term, Term)>) -> Self {
         Map { entries: entries }
     }
