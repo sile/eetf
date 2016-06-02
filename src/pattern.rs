@@ -1,7 +1,8 @@
 use std::marker::Sized;
-use convert::Result;
-use convert::Unmatched;
-use convert::RefTerm;
+use matcher::Result;
+use matcher::Unmatched;
+use matcher::RefTerm;
+use convert::TryAsRef;
 
 pub trait Pattern<'a, I: ?Sized> {
     type Output;
@@ -28,36 +29,6 @@ impl ToRefTerm for ::Atom {
     }
 }
 
-pub trait TryAsRef<T> {
-    fn try_as_ref(&self) -> Option<&T>;
-}
-impl TryAsRef<::Atom> for ::Term {
-    fn try_as_ref(&self) -> Option<&::Atom> {
-        match *self {
-            ::Term::Atom(ref x) => Some(x),
-            _ => None,
-        }
-    }
-}
-impl TryAsRef<::Atom> for ::Atom {
-    fn try_as_ref(&self) -> Option<&::Atom> {
-        Some(self)
-    }
-}
-
-impl TryAsRef<::Tuple> for ::Term {
-    fn try_as_ref(&self) -> Option<&::Tuple> {
-        match *self {
-            ::Term::Tuple(ref x) => Some(x),
-            _ => None,
-        }
-    }
-}
-impl TryAsRef<::Tuple> for ::Tuple {
-    fn try_as_ref(&self) -> Option<&::Tuple> {
-        Some(self)
-    }
-}
 
 impl<'a, T> Pattern<'a, T> for &'static str
     where T: TryAsRef<::Atom> + ToRefTerm

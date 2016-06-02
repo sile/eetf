@@ -11,6 +11,8 @@ use byteorder::BigEndian;
 use num::bigint::BigInt;
 use flate2::read::ZlibDecoder;
 use super::*;
+use convert::TryAsRef;
+use convert::TryInto;
 
 /// Errors which can occur when decoding a term
 #[derive(Debug)]
@@ -241,7 +243,7 @@ impl<R: io::Read> Decoder<R> {
             elements.push(try!(self.decode_term()));
         }
         let last = try!(self.decode_term());
-        if last.as_list().map(|l| l.is_nil()).unwrap_or(false) {
+        if last.try_as_ref().map(|l: &List| l.is_nil()).unwrap_or(false) {
             Ok(Term::from(List::from(elements)))
         } else {
             Ok(Term::from(ImproperList::from((elements, last))))
@@ -300,9 +302,9 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_port_ext(&mut self) -> DecodeResult {
-        let node = try!(self.decode_term()
+        let node: Atom = try!(self.decode_term()
             .and_then(|t| {
-                t.into_atom().map_err(|t| {
+                t.try_into().map_err(|t| {
                     DecodeError::UnexpectedType {
                         value: t,
                         expected: "Atom".to_string(),
@@ -498,7 +500,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_list(&mut self, x: &List) -> EncodeResult {
         let to_byte = |e: &Term| {
-            e.as_fix_integer().and_then(|&FixInteger { value: i }| if i < 0x100 {
+            e.try_as_ref().and_then(|&FixInteger { value: i }| if i < 0x100 {
                 Some(i as u8)
             } else {
                 None
@@ -701,9 +703,10 @@ mod aux {
     use std::io;
     use std::ops::Range;
     use num::bigint::Sign;
+    use convert::TryInto;
 
     pub fn term_into_atom(t: ::Term) -> Result<::Atom, super::DecodeError> {
-        t.into_atom().map_err(|t| {
+        t.try_into().map_err(|t| {
             super::DecodeError::UnexpectedType {
                 value: t,
                 expected: "Atom".to_string(),
@@ -711,7 +714,7 @@ mod aux {
         })
     }
     pub fn term_into_pid(t: ::Term) -> Result<::Pid, super::DecodeError> {
-        t.into_pid().map_err(|t| {
+        t.try_into().map_err(|t| {
             super::DecodeError::UnexpectedType {
                 value: t,
                 expected: "Pid".to_string(),
@@ -719,7 +722,7 @@ mod aux {
         })
     }
     pub fn term_into_fix_integer(t: ::Term) -> Result<::FixInteger, super::DecodeError> {
-        t.into_fix_integer().map_err(|t| {
+        t.try_into().map_err(|t| {
             super::DecodeError::UnexpectedType {
                 value: t,
                 expected: "FixInteger".to_string(),

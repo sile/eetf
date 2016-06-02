@@ -1,108 +1,79 @@
-use pattern::Pattern;
-use pattern::ToRefTerm;
+use super::*;
 
-pub type Result<'a, T> = ::std::result::Result<T, Unmatched<'a>>;
-
-pub trait MatchAs {
-    fn match_as<'a, P>(&'a self, pattern: P) -> Result<'a, P::Output>
-        where P: Pattern<'a, Self>
-    {
-        pattern.try_match(self)
-    }
-}
-impl MatchAs for ::Atom {}
-impl MatchAs for ::Term {}
-impl MatchAs for ::Tuple {}
-
-#[derive(Debug, PartialEq)]
-pub enum RefTerm<'a> {
-    Term(&'a ::Term),
-    Atom(&'a ::Atom),
-    FixInteger(&'a ::FixInteger),
-    BigInteger(&'a ::BigInteger),
-    Float(&'a ::Float),
-    Pid(&'a ::Pid),
-    Port(&'a ::Port),
-    Reference(&'a ::Reference),
-    ExternalFun(&'a ::ExternalFun),
-    InternalFun(&'a ::InternalFun),
-    Binary(&'a ::Binary),
-    BitBinary(&'a ::BitBinary),
-    List(&'a ::List),
-    ImproperList(&'a ::ImproperList),
-    Tuple(&'a ::Tuple),
-    Map(&'a ::Map),
+pub trait TryAsRef<T> {
+    fn try_as_ref(&self) -> Option<&T>;
 }
 
-#[derive(Debug)]
-pub struct Unmatched<'a> {
-    pub kind: UnmatchKind,
-    pub input: RefTerm<'a>,
-    pub cause: Option<Box<Unmatched<'a>>>,
+impl<T> TryAsRef<T> for T {
+    fn try_as_ref(&self) -> Option<&T> {
+        Some(self)
+    }
 }
-impl<'a> Unmatched<'a> {
-    pub fn input_type<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Type,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn value<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Value,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn arity<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Arity,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn element<T>(input: &'a T, index: usize, cause: Unmatched<'a>) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Element(index),
-            input: input.to_ref_term(),
-            cause: Some(Box::new(cause)),
+
+macro_rules! impl_term_try_as_ref {
+    ($to:ident) => {
+        impl TryAsRef<$to> for Term {
+            fn try_as_ref(&self) -> Option<&$to> {
+                match *self {
+                    Term::$to(ref x) => Some(x),
+                    _ => None,
+                }
+            }
         }
     }
 }
+impl_term_try_as_ref!(Atom);
+impl_term_try_as_ref!(FixInteger);
+impl_term_try_as_ref!(BigInteger);
+impl_term_try_as_ref!(Float);
+impl_term_try_as_ref!(Pid);
+impl_term_try_as_ref!(Port);
+impl_term_try_as_ref!(Reference);
+impl_term_try_as_ref!(ExternalFun);
+impl_term_try_as_ref!(InternalFun);
+impl_term_try_as_ref!(Binary);
+impl_term_try_as_ref!(BitBinary);
+impl_term_try_as_ref!(List);
+impl_term_try_as_ref!(ImproperList);
+impl_term_try_as_ref!(Tuple);
+impl_term_try_as_ref!(Map);
 
-#[derive(Debug)]
-pub enum UnmatchKind {
-    Type,
-    Value,
-    Arity,
-    Element(usize),
+pub trait TryInto<T> {
+    fn try_into(self) -> Result<T, Self> where Self: Sized;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::super::*;
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let t = Term::from(Atom::from("hoge"));
-        t.match_as("hoge").unwrap();
-
-        let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
-                                            Term::from(Atom::from("bar"))]));
-        t.match_as(("foo", "bar")).unwrap();
-
-        let t = Tuple::from(vec![Term::from(Atom::from("foo")),
-                                 Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))]))]);
-        t.match_as(("foo", "bar", "baz")).unwrap();
+impl<T> TryInto<T> for T {
+    fn try_into(self) -> Result<T, Self>
+        where Self: Sized
+    {
+        Ok(self)
     }
 }
+
+macro_rules! impl_term_try_into {
+    ($to:ident) => {
+        impl TryInto<$to> for Term {
+            fn try_into(self) -> Result<$to, Self> where Self: Sized {
+                match self {
+                    Term::$to(x) => Ok(x),
+                    _ => Err(self)
+                }
+            }
+        }
+    }
+}
+impl_term_try_into!(Atom);
+impl_term_try_into!(FixInteger);
+impl_term_try_into!(BigInteger);
+impl_term_try_into!(Float);
+impl_term_try_into!(Pid);
+impl_term_try_into!(Port);
+impl_term_try_into!(Reference);
+impl_term_try_into!(ExternalFun);
+impl_term_try_into!(InternalFun);
+impl_term_try_into!(Binary);
+impl_term_try_into!(BitBinary);
+impl_term_try_into!(List);
+impl_term_try_into!(ImproperList);
+impl_term_try_into!(Tuple);
+impl_term_try_into!(Map);

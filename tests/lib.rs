@@ -3,6 +3,7 @@ extern crate num;
 
 use std::io::Cursor;
 use eetf::*;
+use eetf::convert::TryInto;
 
 #[test]
 fn atom_test() {
@@ -13,13 +14,13 @@ fn atom_test() {
 
     // Decode
     assert_eq!(Ok(Atom::from("foo")),
-               decode(&[131, 100, 0, 3, 102, 111, 111]).into_atom()); // ATOM_EXT
+               decode(&[131, 100, 0, 3, 102, 111, 111]).try_into()); // ATOM_EXT
     assert_eq!(Ok(Atom::from("foo")),
-               decode(&[131, 115, 3, 102, 111, 111]).into_atom()); // SMALL_ATOM_EXT
+               decode(&[131, 115, 3, 102, 111, 111]).try_into()); // SMALL_ATOM_EXT
     assert_eq!(Ok(Atom::from("foo")),
-               decode(&[131, 118, 0, 3, 102, 111, 111]).into_atom()); // ATOM_UTF8_EXT
+               decode(&[131, 118, 0, 3, 102, 111, 111]).try_into()); // ATOM_UTF8_EXT
     assert_eq!(Ok(Atom::from("foo")),
-               decode(&[131, 119, 3, 102, 111, 111]).into_atom()); // SMALL_ATOM_UTF8_EXT
+               decode(&[131, 119, 3, 102, 111, 111]).try_into()); // SMALL_ATOM_UTF8_EXT
 
     // Encode
     assert_eq!(vec![131, 100, 0, 3, 102, 111, 111],
@@ -35,20 +36,19 @@ fn integer_test() {
     assert_eq!("-123", BigInteger::from(-123).to_string());
 
     // Decode
-    assert_eq!(Ok(FixInteger::from(10)),
-               decode(&[131, 97, 10]).into_fix_integer()); // SMALL_INTEGER_EXT
+    assert_eq!(Ok(FixInteger::from(10)), decode(&[131, 97, 10]).try_into()); // SMALL_INTEGER_EXT
     assert_eq!(Ok(FixInteger::from(1000)),
-               decode(&[131, 98, 0, 0, 3, 232]).into_fix_integer()); // INTEGER_EXT
+               decode(&[131, 98, 0, 0, 3, 232]).try_into()); // INTEGER_EXT
     assert_eq!(Ok(FixInteger::from(-1000)),
-               decode(&[131, 98, 255, 255, 252, 24]).into_fix_integer()); // INTEGER_EXT
+               decode(&[131, 98, 255, 255, 252, 24]).try_into()); // INTEGER_EXT
     assert_eq!(Ok(BigInteger::from(0)),
-               decode(&[131, 110, 1, 0, 0]).into_big_integer()); // SMALL_BIG_EXT
+               decode(&[131, 110, 1, 0, 0]).try_into()); // SMALL_BIG_EXT
     assert_eq!(Ok(BigInteger::from(513)),
-               decode(&[131, 110, 2, 0, 1, 2]).into_big_integer()); // SMALL_BIG_EXT
+               decode(&[131, 110, 2, 0, 1, 2]).try_into()); // SMALL_BIG_EXT
     assert_eq!(Ok(BigInteger::from(-513)),
-               decode(&[131, 110, 2, 1, 1, 2]).into_big_integer()); // SMALL_BIG_EXT
+               decode(&[131, 110, 2, 1, 1, 2]).try_into()); // SMALL_BIG_EXT
     assert_eq!(Ok(BigInteger::from(513)),
-               decode(&[131, 111, 0, 0, 0, 2, 0, 1, 2]).into_big_integer()); // LARGE_BIG_EXT
+               decode(&[131, 111, 0, 0, 0, 2, 0, 1, 2]).try_into()); // LARGE_BIG_EXT
 
     // Encode
     assert_eq!(vec![131, 97, 0], encode(Term::from(FixInteger::from(0))));
@@ -75,14 +75,14 @@ fn float_test() {
     assert_eq!(Ok(Float::from("1.23".parse::<f32>().unwrap() as f64)),
                decode(&[131, 99, 49, 46, 50, 50, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57,
                         57, 57, 56, 50, 50, 52, 101, 43, 48, 48, 0, 0, 0, 0, 0])
-                   .into_float()); // FLOAT_EXT
+                   .try_into()); // FLOAT_EXT
 
     assert_eq!(Ok(Float::from(123.456)),
                // NEW_FLOAT_EXT
-               decode(&[131, 70, 64, 94, 221, 47, 26, 159, 190, 119]).into_float());
+               decode(&[131, 70, 64, 94, 221, 47, 26, 159, 190, 119]).try_into());
     assert_eq!(Ok(Float::from(-123.456)),
                // NEW_FLOAT_EXT
-               decode(&[131, 70, 192, 94, 221, 47, 26, 159, 190, 119]).into_float());
+               decode(&[131, 70, 192, 94, 221, 47, 26, 159, 190, 119]).try_into());
     // Encode
     assert_eq!(vec![131, 70, 64, 94, 221, 47, 26, 159, 190, 119],
                encode(Term::from(Float::from(123.456))));
@@ -98,7 +98,7 @@ fn pid_test() {
     assert_eq!(Ok(Pid::from(("nonode@nohost", 49, 0))),
                decode(&[131, 103, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104,
                         111, 115, 116, 0, 0, 0, 49, 0, 0, 0, 0, 0])
-                   .into_pid()); // PID_EXT
+                   .try_into()); // PID_EXT
 
     // Encode
     assert_eq!(vec![131, 103, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111,
@@ -116,7 +116,7 @@ fn port_test() {
     assert_eq!(Ok(Port::from(("nonode@nohost", 366))),
                decode(&[131, 102, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104,
                         111, 115, 116, 0, 0, 1, 110, 0])
-                   .into_port()); // PORT_EXT
+                   .try_into()); // PORT_EXT
 
     // Encode
     assert_eq!(vec![131, 102, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111,
@@ -134,10 +134,10 @@ fn reference_test() {
     assert_eq!(Ok(Reference::from(("nonode@nohost", vec![138016, 262145, 0]))),
                decode(&[131, 114, 0, 3, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111,
                         104, 111, 115, 116, 0, 0, 2, 27, 32, 0, 4, 0, 1, 0, 0, 0, 0])
-                   .into_reference()); // NEW_REFERENCE_EXT
+                   .try_into()); // NEW_REFERENCE_EXT
     assert_eq!(Ok(Reference::from(("foo", vec![2]))),
                // NEW_REFERENCE_EXT
-               decode(&[131, 101, 115, 3, 102, 111, 111, 0, 0, 0, 2, 0]).into_reference());
+               decode(&[131, 101, 115, 3, 102, 111, 111, 0, 0, 0, 2, 0]).try_into());
 
     // Encode
     assert_eq!(vec![131, 114, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 123],
@@ -153,7 +153,7 @@ fn external_fun_test() {
     // Decode
     assert_eq!(Ok(ExternalFun::from(("foo", "bar", 3))),
                decode(&[131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3])
-                   .into_external_fun());
+                   .try_into());
 
     // Encode
     assert_eq!(vec![131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3],
@@ -177,7 +177,7 @@ fn internal_fun_test() {
                  91, 103, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115,
                  116, 0, 0, 0, 36, 0, 0, 0, 0, 0, 97, 10];
     // Decode
-    assert_eq!(Ok(term.clone()), decode(&bytes).into_internal_fun());
+    assert_eq!(Ok(term.clone()), decode(&bytes).try_into());
 
     // Encode
     assert_eq!(Vec::from(&bytes[..]), encode(Term::from(term)));
@@ -190,7 +190,7 @@ fn binary_test() {
 
     // Decode
     assert_eq!(Ok(Binary::from(vec![1, 2, 3])),
-               decode(&[131, 109, 0, 0, 0, 3, 1, 2, 3]).into_binary());
+               decode(&[131, 109, 0, 0, 0, 3, 1, 2, 3]).try_into());
 
     // Encode
     assert_eq!(vec![131, 109, 0, 0, 0, 3, 1, 2, 3],
@@ -207,7 +207,7 @@ fn bit_binary_test() {
 
     // Decode
     assert_eq!(Ok(BitBinary::from((vec![1, 2, 3], 5))),
-               decode(&[131, 77, 0, 0, 0, 3, 5, 1, 2, 24]).into_bit_binary());
+               decode(&[131, 77, 0, 0, 0, 3, 5, 1, 2, 24]).try_into());
 
     // Encode
     assert_eq!(vec![131, 77, 0, 0, 0, 3, 5, 1, 2, 24],
@@ -223,12 +223,12 @@ fn list_test() {
     assert_eq!("[]", List::nil().to_string());
 
     // Decode
-    assert_eq!(Ok(List::nil()), decode(&[131, 106]).into_list()); // NIL_EXT
+    assert_eq!(Ok(List::nil()), decode(&[131, 106]).try_into()); // NIL_EXT
     assert_eq!(Ok(List::from(vec![Term::from(FixInteger::from(1)),
                                   Term::from(FixInteger::from(2))])),
-               decode(&[131, 107, 0, 2, 1, 2]).into_list()); // STRING_EXT
+               decode(&[131, 107, 0, 2, 1, 2]).try_into()); // STRING_EXT
     assert_eq!(Ok(List::from(vec![Term::from(Atom::from("a"))])),
-               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106]).into_list());
+               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106]).try_into());
 
     // Encode
     assert_eq!(vec![131, 106], encode(Term::from(List::nil())));
@@ -251,7 +251,7 @@ fn improper_list_test() {
     // Decode
     assert_eq!(Ok(ImproperList::from((vec![Term::from(Atom::from("a"))],
                                       Term::from(FixInteger::from(1))))),
-               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1]).into_improper_list());
+               decode(&[131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1]).try_into());
 
     // Encode
     assert_eq!(vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1],
@@ -269,7 +269,7 @@ fn tuple_test() {
 
     // Decode
     assert_eq!(Ok(Tuple::from(vec![Term::from(Atom::from("a")), Term::from(FixInteger::from(1))])),
-               decode(&[131, 104, 2, 100, 0, 1, 97, 97, 1]).into_tuple());
+               decode(&[131, 104, 2, 100, 0, 1, 97, 97, 1]).try_into());
 
     // Encode
     assert_eq!(vec![131, 104, 2, 100, 0, 1, 97, 97, 1],
@@ -290,7 +290,7 @@ fn map_test() {
     // Decode
     assert_eq!(Ok(map.clone()),
                decode(&[131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98])
-                   .into_map());
+                   .try_into());
 
     // Encode
     assert_eq!(vec![131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98],
@@ -327,7 +327,7 @@ fn compressed_term_test() {
                         115, 223, 3, 15, 61, 242, 216, 19, 79, 61, 243, 220, 11, 47, 189, 242,
                         218, 27, 111, 189, 243, 222, 7, 31, 125, 242, 217, 23, 95, 125, 243,
                         221, 15, 63, 27, 253, 46, 16, 248, 11, 162, 195, 225, 90])
-                   .into_list());
+                   .try_into());
 }
 
 fn encode(term: Term) -> Vec<u8> {
