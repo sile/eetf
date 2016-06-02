@@ -1,108 +1,50 @@
 use pattern::Pattern;
-use pattern::ToRefTerm;
+use super::*;
 
-pub type Result<'a, T> = ::std::result::Result<T, Unmatched<'a>>;
-
-pub trait MatchAs {
-    fn match_as<'a, P>(&'a self, pattern: P) -> Result<'a, P::Output>
+pub trait AsMatch {
+    fn as_match<'a, P>(&'a self, pattern: P) -> Result<P::Output, P::Error>
         where P: Pattern<'a, Self>
     {
         pattern.try_match(self)
     }
 }
-impl MatchAs for ::Atom {}
-impl MatchAs for ::Term {}
-impl MatchAs for ::Tuple {}
 
-#[derive(Debug, PartialEq)]
-pub enum RefTerm<'a> {
-    Term(&'a ::Term),
-    Atom(&'a ::Atom),
-    FixInteger(&'a ::FixInteger),
-    BigInteger(&'a ::BigInteger),
-    Float(&'a ::Float),
-    Pid(&'a ::Pid),
-    Port(&'a ::Port),
-    Reference(&'a ::Reference),
-    ExternalFun(&'a ::ExternalFun),
-    InternalFun(&'a ::InternalFun),
-    Binary(&'a ::Binary),
-    BitBinary(&'a ::BitBinary),
-    List(&'a ::List),
-    ImproperList(&'a ::ImproperList),
-    Tuple(&'a ::Tuple),
-    Map(&'a ::Map),
-}
-
-#[derive(Debug)]
-pub struct Unmatched<'a> {
-    pub kind: UnmatchKind,
-    pub input: RefTerm<'a>,
-    pub cause: Option<Box<Unmatched<'a>>>,
-}
-impl<'a> Unmatched<'a> {
-    pub fn input_type<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Type,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn value<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Value,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn arity<T>(input: &'a T) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Arity,
-            input: input.to_ref_term(),
-            cause: None,
-        }
-    }
-    pub fn element<T>(input: &'a T, index: usize, cause: Unmatched<'a>) -> Self
-        where T: ToRefTerm
-    {
-        Unmatched {
-            kind: UnmatchKind::Element(index),
-            input: input.to_ref_term(),
-            cause: Some(Box::new(cause)),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum UnmatchKind {
-    Type,
-    Value,
-    Arity,
-    Element(usize),
-}
+impl AsMatch for Term {}
+impl AsMatch for Atom {}
+impl AsMatch for FixInteger {}
+impl AsMatch for BigInteger {}
+impl AsMatch for Float {}
+impl AsMatch for Pid {}
+impl AsMatch for Port {}
+impl AsMatch for Reference {}
+impl AsMatch for ExternalFun {}
+impl AsMatch for InternalFun {}
+impl AsMatch for Binary {}
+impl AsMatch for BitBinary {}
+impl AsMatch for List {}
+impl AsMatch for ImproperList {}
+impl AsMatch for Tuple {}
+impl AsMatch for Map {}
 
 #[cfg(test)]
 mod tests {
     use super::super::*;
     use super::*;
+    use pattern::any;
 
     #[test]
     fn it_works() {
         let t = Term::from(Atom::from("hoge"));
-        t.match_as("hoge").unwrap();
+        t.as_match("hoge").unwrap();
 
         let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
                                             Term::from(Atom::from("bar"))]));
-        t.match_as(("foo", "bar")).unwrap();
+        let (_, v) = t.as_match(("foo", any::<Atom>())).unwrap();
+        assert_eq!("bar", v.name);
 
         let t = Tuple::from(vec![Term::from(Atom::from("foo")),
+                                 Term::from(Atom::from("bar")),
                                  Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))]))]);
-        t.match_as(("foo", "bar", "baz")).unwrap();
+        assert!(t.as_match(("foo", "bar", "baz")).is_err());
     }
 }

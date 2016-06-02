@@ -77,3 +77,16 @@ impl_term_try_into!(List);
 impl_term_try_into!(ImproperList);
 impl_term_try_into!(Tuple);
 impl_term_try_into!(Map);
+
+pub trait AsOption {
+    fn as_option(&self) -> Option<&Self>;
+}
+impl AsOption for bool {
+    fn as_option(&self) -> Option<&Self> {
+        if *self {
+            Some(self)
+        } else {
+            None
+        }
+    }
+}
