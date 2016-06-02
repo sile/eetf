@@ -14,57 +14,43 @@ pub trait Pattern<'a, T: ?Sized> {
 pub struct Unmatch<T, C> {
     pub input: T,
     pub kind: UnmatchKind,
-    pub cause: Option<C>,
+    pub cause: Option<Box<C>>,
 }
 impl<T, C> Unmatch<T, C> {
-    pub fn input_type(input: T) -> Self {
+    pub fn new(input: T, kind: UnmatchKind) -> Self {
         Unmatch {
             input: input,
-            kind: UnmatchKind::Type,
+            kind: kind,
             cause: None,
         }
+    }
+    pub fn with_cause(input: T, kind: UnmatchKind, cause: C) -> Self {
+        Unmatch {
+            input: input,
+            kind: kind,
+            cause: Some(Box::new(cause)),
+        }
+    }
+    pub fn input_type(input: T) -> Self {
+        Unmatch::new(input, UnmatchKind::Type)
     }
     pub fn value(input: T) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Value,
-            cause: None,
-        }
+        Unmatch::new(input, UnmatchKind::Value)
     }
     pub fn arity(input: T) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Arity,
-            cause: None,
-        }
+        Unmatch::new(input, UnmatchKind::Arity)
     }
     pub fn element(input: T, index: usize, cause: C) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Element(index),
-            cause: Some(cause),
-        }
+        Unmatch::with_cause(input, UnmatchKind::Element(index), cause)
     }
     pub fn head(input: T, cause: C) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Head,
-            cause: Some(cause),
-        }
+        Unmatch::with_cause(input, UnmatchKind::Head, cause)
     }
     pub fn tail(input: T, cause: C) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Tail,
-            cause: Some(cause),
-        }
+        Unmatch::with_cause(input, UnmatchKind::Tail, cause)
     }
     pub fn every(input: T, cause: C) -> Self {
-        Unmatch {
-            input: input,
-            kind: UnmatchKind::Every,
-            cause: Some(cause),
-        }
+        Unmatch::with_cause(input, UnmatchKind::Every, cause)
     }
 }
 
@@ -163,11 +149,8 @@ impl<'a, T, P> Pattern<'a, T> for List<P>
     type Error = Unmatch<&'a T, P::Error>;
     fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
         let l = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input)));
-        let mut output = Vec::with_capacity(l.elements.len());
-        for (i, e) in l.elements.iter().enumerate() {
-            output.push(try!(self.0.try_match(e).map_err(|e| Unmatch::element(input, i, e))));
-        }
-        Ok(output)
+        self.try_match(&l.elements[..])
+            .map_err(|e| Unmatch::with_cause(input, e.kind, *e.cause.unwrap()))
     }
 }
 impl<'a, P> Pattern<'a, [Term]> for List<P>
@@ -488,6 +471,54 @@ impl<'a, T, P0, P1, P2, P3, P4, P5> Pattern<'a, T> for Or<(P0, P1, P2, P3, P4, P
         Err(Unmatch::every(input, (e0, e1, e2, e3, e4, e5)))
     }
 }
+
+pub struct Ascii;
+impl<'a, T> Pattern<'a, T> for Ascii
+    where T: TryAsRef<::FixInteger> + 'static
+{
+    type Output = char;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let n = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).value;
+        if 0 <= n && n < 0x100 {
+            Ok(n as u8 as char)
+        } else {
+            Err(Unmatch::value(input))
+        }
+    }
+}
+
+pub struct Unicode;
+impl<'a, T> Pattern<'a, T> for Unicode
+    where T: TryAsRef<::FixInteger> + 'static
+{
+    type Output = char;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let n = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).value;
+        ::std::char::from_u32(n as u32).ok_or_else(|| Unmatch::value(input))
+    }
+}
+
+pub struct Str<C>(pub C);
+impl<'a, T, C> Pattern<'a, T> for Str<C>
+    where T: TryAsRef<::List> + 'static,
+          C: Pattern<'a, ::Term, Output = char>
+{
+    type Output = String;
+    type Error = Unmatch<&'a T, C::Error>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let l = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input)));
+        let mut s = String::with_capacity(l.elements.len());
+        for (i, e) in l.elements.iter().enumerate() {
+            let c = try!(self.0.try_match(e).map_err(|e| Unmatch::element(input, i, e)));
+            s.push(c);
+        }
+        Ok(s)
+    }
+}
+
+//
 
 // TODO
 // UnicodeStr, UTF8-str, ASCII-str
