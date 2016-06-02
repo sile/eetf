@@ -1,3 +1,7 @@
+use num;
+use num::traits::ToPrimitive;
+use num::bigint::ToBigInt;
+use num::bigint::ToBigUint;
 use ::Term;
 use ::Atom;
 use ::Tuple;
@@ -474,14 +478,14 @@ impl<'a, T, P0, P1, P2, P3, P4, P5> Pattern<'a, T> for Or<(P0, P1, P2, P3, P4, P
 
 pub struct Ascii;
 impl<'a, T> Pattern<'a, T> for Ascii
-    where T: TryAsRef<::FixInteger> + 'static
+    where T: ToPrimitive + 'static
 {
     type Output = char;
     type Error = Unmatch<&'a T, ()>;
     fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
-        let n = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).value;
-        if 0 <= n && n < 0x100 {
-            Ok(n as u8 as char)
+        let n = try!(input.to_u8().ok_or_else(|| Unmatch::input_type(input)));
+        if n < 0x80 {
+            Ok(n as char)
         } else {
             Err(Unmatch::value(input))
         }
@@ -490,13 +494,13 @@ impl<'a, T> Pattern<'a, T> for Ascii
 
 pub struct Unicode;
 impl<'a, T> Pattern<'a, T> for Unicode
-    where T: TryAsRef<::FixInteger> + 'static
+    where T: ToPrimitive + 'static
 {
     type Output = char;
     type Error = Unmatch<&'a T, ()>;
     fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
-        let n = try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).value;
-        ::std::char::from_u32(n as u32).ok_or_else(|| Unmatch::value(input))
+        let n = try!(input.to_u32().ok_or_else(|| Unmatch::input_type(input)));
+        ::std::char::from_u32(n).ok_or_else(|| Unmatch::value(input))
     }
 }
 
@@ -518,8 +522,112 @@ impl<'a, T, C> Pattern<'a, T> for Str<C>
     }
 }
 
-//
+pub struct U8;
+impl<'a, T> Pattern<'a, T> for U8
+    where T: ToPrimitive + 'static
+{
+    type Output = u8;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_u8().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
 
-// TODO
-// UnicodeStr, UTF8-str, ASCII-str
-// u8, i8, u16, i16, i32, u32, i64, u64, f32, f64, bigint, biguint
+pub struct I8;
+impl<'a, T> Pattern<'a, T> for I8
+    where T: ToPrimitive + 'static
+{
+    type Output = i8;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_i8().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct U16;
+impl<'a, T> Pattern<'a, T> for U16
+    where T: ToPrimitive + 'static
+{
+    type Output = u16;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_u16().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct I16;
+impl<'a, T> Pattern<'a, T> for I16
+    where T: ToPrimitive + 'static
+{
+    type Output = i16;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_i16().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct U32;
+impl<'a, T> Pattern<'a, T> for U32
+    where T: ToPrimitive + 'static
+{
+    type Output = u32;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_u32().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct I32;
+impl<'a, T> Pattern<'a, T> for I32
+    where T: ToPrimitive + 'static
+{
+    type Output = i32;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_i32().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct U64;
+impl<'a, T> Pattern<'a, T> for U64
+    where T: ToPrimitive + 'static
+{
+    type Output = u64;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_u64().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct I64;
+impl<'a, T> Pattern<'a, T> for I64
+    where T: ToPrimitive + 'static
+{
+    type Output = i64;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_i64().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct Int;
+impl<'a, T> Pattern<'a, T> for Int
+    where T: ToBigInt + 'static
+{
+    type Output = num::BigInt;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_bigint().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct Uint;
+impl<'a, T> Pattern<'a, T> for Uint
+    where T: ToBigUint + 'static
+{
+    type Output = num::BigUint;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_biguint().ok_or_else(|| Unmatch::input_type(input))
+    }
+}

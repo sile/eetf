@@ -1,3 +1,4 @@
+use num;
 use super::*;
 
 pub trait TryAsRef<T> {
@@ -87,6 +88,80 @@ impl AsOption for bool {
             Some(self)
         } else {
             None
+        }
+    }
+}
+
+impl num::traits::ToPrimitive for FixInteger {
+    fn to_i64(&self) -> Option<i64> {
+        Some(self.value as i64)
+    }
+    fn to_u64(&self) -> Option<u64> {
+        Some(self.value as u64)
+    }
+}
+impl num::traits::ToPrimitive for BigInteger {
+    fn to_i64(&self) -> Option<i64> {
+        self.value.to_i64()
+    }
+    fn to_u64(&self) -> Option<u64> {
+        self.value.to_u64()
+    }
+}
+impl num::traits::ToPrimitive for Term {
+    fn to_i64(&self) -> Option<i64> {
+        match *self {
+            Term::FixInteger(ref x) => x.to_i64(),
+            Term::BigInteger(ref x) => x.to_i64(),
+            _ => None,
+        }
+    }
+    fn to_u64(&self) -> Option<u64> {
+        match *self {
+            Term::FixInteger(ref x) => x.to_u64(),
+            Term::BigInteger(ref x) => x.to_u64(),
+            _ => None,
+        }
+
+    }
+}
+
+impl num::bigint::ToBigInt for FixInteger {
+    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+        Some(BigInteger::from(self).value)
+    }
+}
+impl num::bigint::ToBigInt for BigInteger {
+    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+        Some(self.value.clone())
+    }
+}
+impl num::bigint::ToBigInt for Term {
+    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+        match *self {
+            Term::FixInteger(ref x) => x.to_bigint(),
+            Term::BigInteger(ref x) => x.to_bigint(),
+            _ => None,
+        }
+    }
+}
+
+impl num::bigint::ToBigUint for FixInteger {
+    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+        BigInteger::from(self).value.to_biguint()
+    }
+}
+impl num::bigint::ToBigUint for BigInteger {
+    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+        self.value.to_biguint()
+    }
+}
+impl num::bigint::ToBigUint for Term {
+    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+        match *self {
+            Term::FixInteger(ref x) => x.to_biguint(),
+            Term::BigInteger(ref x) => x.to_biguint(),
+            _ => None,
         }
     }
 }

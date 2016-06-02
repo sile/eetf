@@ -31,6 +31,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use pattern::any;
+    use pattern::U8;
 
     #[test]
     fn it_works() {
@@ -46,5 +47,8 @@ mod tests {
                                  Term::from(Atom::from("bar")),
                                  Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))]))]);
         assert!(t.as_match(("foo", "bar", "baz")).is_err());
+
+        let t = Term::from(FixInteger::from(8));
+        t.as_match(U8).unwrap();
     }
 }
