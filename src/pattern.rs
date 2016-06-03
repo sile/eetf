@@ -169,6 +169,142 @@ impl<'a, P> Pattern<'a, [Term]> for VarList<P>
     }
 }
 
+#[derive(Debug)]
+pub struct FixList<T>(pub T);
+impl<'a, T, P0> Pattern<'a, T> for FixList<(P0,)>
+    where P0: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = P0::Output;
+    type Error = Unmatch<&'a T, P0::Error>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 1).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 = try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, e)));
+        Ok(o0)
+    }
+}
+
+impl<'a, T, P0, P1> Pattern<'a, T> for FixList<(P0, P1)>
+    where P0: Pattern<'a, Term>,
+          P1: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = (P0::Output, P1::Output);
+    type Error = Unmatch<&'a T, Union2<P0::Error, P1::Error>>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 2).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 =
+            try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, Union2::A(e))));
+        let o1 =
+            try!((self.0).1.try_match(&e[1]).map_err(|e| Unmatch::element(input, 1, Union2::B(e))));
+        Ok((o0, o1))
+    }
+}
+
+impl<'a, T, P0, P1, P2> Pattern<'a, T> for FixList<(P0, P1, P2)>
+    where P0: Pattern<'a, Term>,
+          P1: Pattern<'a, Term>,
+          P2: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = (P0::Output, P1::Output, P2::Output);
+    type Error = Unmatch<&'a T, Union3<P0::Error, P1::Error, P2::Error>>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 3).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 =
+            try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, Union3::A(e))));
+        let o1 =
+            try!((self.0).1.try_match(&e[1]).map_err(|e| Unmatch::element(input, 1, Union3::B(e))));
+        let o2 =
+            try!((self.0).2.try_match(&e[2]).map_err(|e| Unmatch::element(input, 2, Union3::C(e))));
+        Ok((o0, o1, o2))
+    }
+}
+
+impl<'a, T, P0, P1, P2, P3> Pattern<'a, T> for FixList<(P0, P1, P2, P3)>
+    where P0: Pattern<'a, Term>,
+          P1: Pattern<'a, Term>,
+          P2: Pattern<'a, Term>,
+          P3: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = (P0::Output, P1::Output, P2::Output, P3::Output);
+    type Error = Unmatch<&'a T, Union4<P0::Error, P1::Error, P2::Error, P3::Error>>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 4).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 =
+            try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, Union4::A(e))));
+        let o1 =
+            try!((self.0).1.try_match(&e[1]).map_err(|e| Unmatch::element(input, 1, Union4::B(e))));
+        let o2 =
+            try!((self.0).2.try_match(&e[2]).map_err(|e| Unmatch::element(input, 2, Union4::C(e))));
+        let o3 =
+            try!((self.0).3.try_match(&e[3]).map_err(|e| Unmatch::element(input, 3, Union4::D(e))));
+        Ok((o0, o1, o2, o3))
+    }
+}
+
+impl<'a, T, P0, P1, P2, P3, P4> Pattern<'a, T> for FixList<(P0, P1, P2, P3, P4)>
+    where P0: Pattern<'a, Term>,
+          P1: Pattern<'a, Term>,
+          P2: Pattern<'a, Term>,
+          P3: Pattern<'a, Term>,
+          P4: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = (P0::Output, P1::Output, P2::Output, P3::Output, P4::Output);
+    type Error = Unmatch<&'a T, Union5<P0::Error, P1::Error, P2::Error, P3::Error, P4::Error>>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 5).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 =
+            try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, Union5::A(e))));
+        let o1 =
+            try!((self.0).1.try_match(&e[1]).map_err(|e| Unmatch::element(input, 1, Union5::B(e))));
+        let o2 =
+            try!((self.0).2.try_match(&e[2]).map_err(|e| Unmatch::element(input, 2, Union5::C(e))));
+        let o3 =
+            try!((self.0).3.try_match(&e[3]).map_err(|e| Unmatch::element(input, 3, Union5::D(e))));
+        let o4 =
+            try!((self.0).4.try_match(&e[4]).map_err(|e| Unmatch::element(input, 4, Union5::E(e))));
+        Ok((o0, o1, o2, o3, o4))
+    }
+}
+
+impl<'a, T, P0, P1, P2, P3, P4, P5> Pattern<'a, T> for FixList<(P0, P1, P2, P3, P4, P5)>
+    where P0: Pattern<'a, Term>,
+          P1: Pattern<'a, Term>,
+          P2: Pattern<'a, Term>,
+          P3: Pattern<'a, Term>,
+          P4: Pattern<'a, Term>,
+          P5: Pattern<'a, Term>,
+          T: TryAsRef<List> + 'static
+{
+    type Output = (P0::Output, P1::Output, P2::Output, P3::Output, P4::Output, P5::Output);
+    type Error = Unmatch<&'a T,
+            Union6<P0::Error, P1::Error, P2::Error, P3::Error, P4::Error, P5::Error>>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        let e = &try!(input.try_as_ref().ok_or_else(|| Unmatch::input_type(input))).elements;
+        try!((e.len() == 6).as_option().ok_or_else(|| Unmatch::arity(input)));
+        let o0 =
+            try!((self.0).0.try_match(&e[0]).map_err(|e| Unmatch::element(input, 0, Union6::A(e))));
+        let o1 =
+            try!((self.0).1.try_match(&e[1]).map_err(|e| Unmatch::element(input, 1, Union6::B(e))));
+        let o2 =
+            try!((self.0).2.try_match(&e[2]).map_err(|e| Unmatch::element(input, 2, Union6::C(e))));
+        let o3 =
+            try!((self.0).3.try_match(&e[3]).map_err(|e| Unmatch::element(input, 3, Union6::D(e))));
+        let o4 =
+            try!((self.0).4.try_match(&e[4]).map_err(|e| Unmatch::element(input, 4, Union6::E(e))));
+        let o5 =
+            try!((self.0).5.try_match(&e[5]).map_err(|e| Unmatch::element(input, 5, Union6::F(e))));
+        Ok((o0, o1, o2, o3, o4, o5))
+    }
+}
 
 #[derive(Debug)]
 pub struct Nil;
