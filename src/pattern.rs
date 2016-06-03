@@ -766,3 +766,25 @@ impl<'a, T> Pattern<'a, T> for Uint
         input.to_biguint().ok_or_else(|| Unmatch::input_type(input))
     }
 }
+
+pub struct F32;
+impl<'a, T> Pattern<'a, T> for F32
+    where T: ToPrimitive + 'static
+{
+    type Output = f32;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_f32().ok_or_else(|| Unmatch::input_type(input))
+    }
+}
+
+pub struct F64;
+impl<'a, T> Pattern<'a, T> for F64
+    where T: ToPrimitive + 'static
+{
+    type Output = f64;
+    type Error = Unmatch<&'a T, ()>;
+    fn try_match(&self, input: &'a T) -> Result<Self::Output, Self::Error> {
+        input.to_f64().ok_or_else(|| Unmatch::input_type(input))
+    }
+}

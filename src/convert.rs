@@ -99,6 +99,9 @@ impl num::traits::ToPrimitive for FixInteger {
     fn to_u64(&self) -> Option<u64> {
         Some(self.value as u64)
     }
+    fn to_f64(&self) -> Option<f64> {
+        Some(self.value as f64)
+    }
 }
 impl num::traits::ToPrimitive for BigInteger {
     fn to_i64(&self) -> Option<i64> {
@@ -106,6 +109,20 @@ impl num::traits::ToPrimitive for BigInteger {
     }
     fn to_u64(&self) -> Option<u64> {
         self.value.to_u64()
+    }
+    fn to_f64(&self) -> Option<f64> {
+        self.value.to_f64()
+    }
+}
+impl num::traits::ToPrimitive for Float {
+    fn to_i64(&self) -> Option<i64> {
+        None
+    }
+    fn to_u64(&self) -> Option<u64> {
+        None
+    }
+    fn to_f64(&self) -> Option<f64> {
+        Some(self.value)
     }
 }
 impl num::traits::ToPrimitive for Term {
@@ -120,6 +137,15 @@ impl num::traits::ToPrimitive for Term {
         match *self {
             Term::FixInteger(ref x) => x.to_u64(),
             Term::BigInteger(ref x) => x.to_u64(),
+            _ => None,
+        }
+
+    }
+    fn to_f64(&self) -> Option<f64> {
+        match *self {
+            Term::FixInteger(ref x) => x.to_f64(),
+            Term::BigInteger(ref x) => x.to_f64(),
+            Term::Float(ref x) => x.to_f64(),
             _ => None,
         }
 
