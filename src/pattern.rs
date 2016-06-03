@@ -2,9 +2,7 @@ use num;
 use num::traits::ToPrimitive;
 use num::bigint::ToBigInt;
 use num::bigint::ToBigUint;
-use ::Term;
-use ::Atom;
-use ::Tuple;
+use super::*;
 use convert::TryAsRef;
 use convert::AsOption;
 
@@ -144,10 +142,10 @@ impl<'a, T> Pattern<'a, T> for &'static str
 }
 
 #[derive(Debug)]
-pub struct List<P>(pub P);
-impl<'a, T, P> Pattern<'a, T> for List<P>
+pub struct VarList<P>(pub P);
+impl<'a, T, P> Pattern<'a, T> for VarList<P>
     where P: Pattern<'a, Term>,
-          T: TryAsRef<::List> + 'static
+          T: TryAsRef<List> + 'static
 {
     type Output = Vec<P::Output>;
     type Error = Unmatch<&'a T, P::Error>;
@@ -157,7 +155,7 @@ impl<'a, T, P> Pattern<'a, T> for List<P>
             .map_err(|e| Unmatch::with_cause(input, e.kind, *e.cause.unwrap()))
     }
 }
-impl<'a, P> Pattern<'a, [Term]> for List<P>
+impl<'a, P> Pattern<'a, [Term]> for VarList<P>
     where P: Pattern<'a, Term>
 {
     type Output = Vec<P::Output>;
@@ -170,6 +168,7 @@ impl<'a, P> Pattern<'a, [Term]> for List<P>
         Ok(output)
     }
 }
+
 
 #[derive(Debug)]
 pub struct Nil;
@@ -507,7 +506,7 @@ impl<'a, T> Pattern<'a, T> for Unicode
 pub struct Str<C>(pub C);
 impl<'a, T, C> Pattern<'a, T> for Str<C>
     where T: TryAsRef<::List> + 'static,
-          C: Pattern<'a, ::Term, Output = char>
+          C: Pattern<'a, Term, Output = char>
 {
     type Output = String;
     type Error = Unmatch<&'a T, C::Error>;
