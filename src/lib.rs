@@ -40,7 +40,6 @@ use num::bigint::BigInt;
 mod codec;
 pub mod convert;
 pub mod pattern;
-pub mod matcher;
 
 pub use codec::EncodeResult;
 pub use codec::DecodeResult;
@@ -75,6 +74,12 @@ impl Term {
     /// Encodes the term.
     pub fn encode<W: io::Write>(&self, writer: W) -> EncodeResult {
         codec::Encoder::new(writer).encode(self)
+    }
+
+    pub fn as_match<'a, P>(&'a self, pattern: P) -> pattern::Result<P::Output>
+        where P: pattern::Pattern<'a>
+    {
+        pattern.try_match(self)
     }
 }
 impl fmt::Display for Term {
@@ -576,5 +581,31 @@ impl fmt::Display for Map {
 impl From<Vec<(Term, Term)>> for Map {
     fn from(entries: Vec<(Term, Term)>) -> Self {
         Map { entries: entries }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pattern::any;
+    use pattern::U8;
+
+    #[test]
+    fn it_works() {
+        let t = Term::from(Atom::from("hoge"));
+        t.as_match("hoge").unwrap();
+
+        let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
+                                            Term::from(Atom::from("bar"))]));
+        let (_, v) = t.as_match(("foo", any::<Atom>())).unwrap();
+        assert_eq!("bar", v.name);
+
+        let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
+                             Term::from(Atom::from("bar")),
+                             Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))]))]));
+        assert!(t.as_match(("foo", "bar", "baz")).is_err());
+
+        let t = Term::from(FixInteger::from(8));
+        t.as_match(U8).unwrap();
     }
 }
