@@ -59,6 +59,26 @@ pub enum Union2<A, B> {
     A(A),
     B(B),
 }
+impl<A, B> Union2<A, B> {
+    pub fn is_a(&self) -> bool {
+        match *self {
+            Union2::A(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_b(&self) -> bool {
+        match *self {
+            Union2::B(_) => true,
+            _ => false,
+        }
+    }
+    pub fn into_result(self) -> ::std::result::Result<A, B> {
+        match self {
+            Union2::A(x) => Ok(x),
+            Union2::B(x) => Err(x),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Union3<A, B, C> {
