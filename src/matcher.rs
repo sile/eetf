@@ -1,8 +1,9 @@
 use pattern::Pattern;
+use pattern::Result;
 use super::*;
 
 pub trait AsMatch {
-    fn as_match<'a, P>(&'a self, pattern: P) -> Result<P::Output, P::Error>
+    fn as_match<'a, P>(&'a self, pattern: P) -> Result<P::Output>
         where P: Pattern<'a, Self>
     {
         pattern.try_match(self)
