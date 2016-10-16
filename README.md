@@ -2,6 +2,7 @@ eetf
 ====
 
 [![](http://meritbadge.herokuapp.com/eetf)](https://crates.io/crates/eetf)
+[![Build Status](https://travis-ci.org/sile/eetf.svg?branch=master)](https://travis-ci.org/sile/eetf)
 
 A Rust implementation of [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html).
 
