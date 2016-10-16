@@ -3,6 +3,7 @@ eetf
 
 [![](http://meritbadge.herokuapp.com/eetf)](https://crates.io/crates/eetf)
 [![Build Status](https://travis-ci.org/sile/eetf.svg?branch=master)](https://travis-ci.org/sile/eetf)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A Rust implementation of [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html).
 
@@ -22,10 +23,3 @@ Add following lines to your `Cargo.toml`:
 [dependencies]
 eetf = "*"
 ```
-
-License
--------
-
-This library is released under the MIT License.
-
-See the [LICENSE](LICENSE) file for full license information.
