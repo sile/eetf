@@ -9,7 +9,7 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use byteorder::BigEndian;
 use num::bigint::BigInt;
-use flate2::read::ZlibDecoder;
+use libflate::zlib;
 use super::*;
 use convert::TryAsRef;
 use convert::TryInto;
@@ -18,16 +18,9 @@ use convert::TryInto;
 #[derive(Debug)]
 pub enum DecodeError {
     Io(io::Error),
-    UnsupportedVersion {
-        version: u8,
-    },
-    UnknownTag {
-        tag: u8,
-    },
-    UnexpectedType {
-        value: Term,
-        expected: String,
-    },
+    UnsupportedVersion { version: u8 },
+    UnknownTag { tag: u8 },
+    UnexpectedType { value: Term, expected: String },
     OutOfRange {
         value: i32,
         range: std::ops::Range<i32>,
@@ -220,9 +213,9 @@ impl<R: io::Read> Decoder<R> {
         }
     }
     fn decode_compressed_term(&mut self) -> DecodeResult {
-        let uncompressed_size = try!(self.reader.read_u32::<BigEndian>()) as usize;
-        let mut decoder = Decoder::new(ZlibDecoder::new_with_buf(&mut self.reader,
-                                                                 vec![0; uncompressed_size]));
+        let _uncompressed_size = try!(self.reader.read_u32::<BigEndian>()) as usize;
+        let zlib_decoder = try!(zlib::Decoder::new(&mut self.reader));
+        let mut decoder = Decoder::new(zlib_decoder);
         decoder.decode_term()
     }
     fn decode_nil_ext(&mut self) -> DecodeResult {
@@ -500,11 +493,8 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_list(&mut self, x: &List) -> EncodeResult {
         let to_byte = |e: &Term| {
-            e.try_as_ref().and_then(|&FixInteger { value: i }| if i < 0x100 {
-                Some(i as u8)
-            } else {
-                None
-            })
+            e.try_as_ref()
+                .and_then(|&FixInteger { value: i }| if i < 0x100 { Some(i as u8) } else { None })
         };
         if !x.elements.is_empty() && x.elements.len() <= std::u16::MAX as usize &&
            x.elements.iter().all(|e| to_byte(e).is_some()) {
@@ -762,10 +752,6 @@ mod aux {
         }
     }
     pub fn sign_to_byte(sign: Sign) -> u8 {
-        if sign == Sign::Minus {
-            1
-        } else {
-            0
-        }
+        if sign == Sign::Minus { 1 } else { 0 }
     }
 }

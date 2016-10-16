@@ -30,7 +30,7 @@
 //!
 extern crate num;
 extern crate byteorder;
-extern crate flate2;
+extern crate libflate;
 
 use std::fmt;
 use std::io;

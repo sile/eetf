@@ -13,4 +13,4 @@ license = "MIT"
 [dependencies]
 num = "0.1"
 byteorder = "0.5"
-flate2 = "0.2"
+libflate = "0.1"
