@@ -10,7 +10,7 @@ A Rust implementation of [Erlang External Term Format](http://erlang.org/doc/app
 Documentation
 -------------
 
-See [RustDoc Documentation](http://sile.github.io/rustdocs/eetf/eetf/).
+See [RustDoc Documentation](https://docs.rs/eetf).
 
 The documentation includes some examples.
 
@@ -21,5 +21,5 @@ Add following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-eetf = "*"
+eetf = "0.3"
 ```
