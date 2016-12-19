@@ -197,6 +197,11 @@ impl<'a> From<&'a str> for Atom {
         Atom { name: name.to_string() }
     }
 }
+impl From<String> for Atom {
+    fn from(name: String) -> Self {
+        Atom { name: name }
+    }
+}
 
 /// Fixed width integer.
 #[derive(Debug, PartialEq, Clone)]
@@ -207,6 +212,26 @@ pub struct FixInteger {
 impl fmt::Display for FixInteger {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+impl From<u8> for FixInteger {
+    fn from(value: u8) -> Self {
+        FixInteger { value: value as i32 }
+    }
+}
+impl From<i8> for FixInteger {
+    fn from(value: i8) -> Self {
+        FixInteger { value: value as i32 }
+    }
+}
+impl From<u16> for FixInteger {
+    fn from(value: u16) -> Self {
+        FixInteger { value: value as i32 }
+    }
+}
+impl From<i16> for FixInteger {
+    fn from(value: i16) -> Self {
+        FixInteger { value: value as i32 }
     }
 }
 impl From<i32> for FixInteger {
@@ -226,8 +251,53 @@ impl fmt::Display for BigInteger {
         write!(f, "{}", self.value)
     }
 }
+impl From<i8> for BigInteger {
+    fn from(value: i8) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<u8> for BigInteger {
+    fn from(value: u8) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<i16> for BigInteger {
+    fn from(value: i16) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<u16> for BigInteger {
+    fn from(value: u16) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<i32> for BigInteger {
+    fn from(value: i32) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<u32> for BigInteger {
+    fn from(value: u32) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
 impl From<i64> for BigInteger {
     fn from(value: i64) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<u64> for BigInteger {
+    fn from(value: u64) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<isize> for BigInteger {
+    fn from(value: isize) -> Self {
+        BigInteger { value: BigInt::from(value) }
+    }
+}
+impl From<usize> for BigInteger {
+    fn from(value: usize) -> Self {
         BigInteger { value: BigInt::from(value) }
     }
 }
@@ -248,6 +318,11 @@ impl fmt::Display for Float {
         write!(f, "{}", self.value)
     }
 }
+impl From<f32> for Float {
+    fn from(value: f32) -> Self {
+        Float { value: value as f64 }
+    }
+}
 impl From<f64> for Float {
     fn from(value: f64) -> Self {
         Float { value: value }
@@ -262,11 +337,24 @@ pub struct Pid {
     pub serial: u32,
     pub creation: u8,
 }
+impl Pid {
+    pub fn new<T>(node: T, id: u32, serial: u32, creation: u8) -> Self
+        where Atom: From<T>
+    {
+        Pid {
+            node: Atom::from(node),
+            id: id,
+            serial: serial,
+            creation: creation,
+        }
+    }
+}
 impl fmt::Display for Pid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}.{}.{}>", self.node, self.id, self.serial)
     }
 }
+// TODO: delete
 impl<'a> From<(&'a str, u32, u32)> for Pid {
     fn from((node, id, serial): (&'a str, u32, u32)) -> Self {
         Pid {

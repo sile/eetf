@@ -61,7 +61,7 @@ fn integer_test() {
     assert_eq!(vec![131, 110, 1, 1, 10],
                encode(Term::from(BigInteger::from(-10))));
     assert_eq!(vec![131, 110, 5, 0, 0, 228, 11, 84, 2],
-               encode(Term::from(BigInteger::from(10000000000))));
+               encode(Term::from(BigInteger::from(10000000000u64))));
 }
 
 #[test]
