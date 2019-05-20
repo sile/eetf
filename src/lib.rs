@@ -28,23 +28,23 @@
 //!
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
-extern crate num;
 extern crate byteorder;
 extern crate libflate;
+extern crate num;
 
+use num::bigint::BigInt;
+use std::convert::From;
 use std::fmt;
 use std::io;
-use std::convert::From;
-use num::bigint::BigInt;
 
 mod codec;
 pub mod convert;
 pub mod pattern;
 
-pub use codec::EncodeResult;
-pub use codec::DecodeResult;
-pub use codec::EncodeError;
-pub use codec::DecodeError;
+pub use crate::codec::DecodeError;
+pub use crate::codec::DecodeResult;
+pub use crate::codec::EncodeError;
+pub use crate::codec::EncodeResult;
 
 /// Term.
 #[derive(Debug, PartialEq, Clone)]
@@ -77,7 +77,8 @@ impl Term {
     }
 
     pub fn as_match<'a, P>(&'a self, pattern: P) -> pattern::Result<P::Output>
-        where P: pattern::Pattern<'a>
+    where
+        P: pattern::Pattern<'a>,
     {
         pattern.try_match(self)
     }
@@ -187,14 +188,18 @@ pub struct Atom {
 }
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "'{}'",
-               self.name.replace("\\", "\\\\").replace("'", "\\'"))
+        write!(
+            f,
+            "'{}'",
+            self.name.replace("\\", "\\\\").replace("'", "\\'")
+        )
     }
 }
 impl<'a> From<&'a str> for Atom {
     fn from(name: &'a str) -> Self {
-        Atom { name: name.to_string() }
+        Atom {
+            name: name.to_string(),
+        }
     }
 }
 impl From<String> for Atom {
@@ -216,22 +221,30 @@ impl fmt::Display for FixInteger {
 }
 impl From<u8> for FixInteger {
     fn from(value: u8) -> Self {
-        FixInteger { value: value as i32 }
+        FixInteger {
+            value: value as i32,
+        }
     }
 }
 impl From<i8> for FixInteger {
     fn from(value: i8) -> Self {
-        FixInteger { value: value as i32 }
+        FixInteger {
+            value: value as i32,
+        }
     }
 }
 impl From<u16> for FixInteger {
     fn from(value: u16) -> Self {
-        FixInteger { value: value as i32 }
+        FixInteger {
+            value: value as i32,
+        }
     }
 }
 impl From<i16> for FixInteger {
     fn from(value: i16) -> Self {
-        FixInteger { value: value as i32 }
+        FixInteger {
+            value: value as i32,
+        }
     }
 }
 impl From<i32> for FixInteger {
@@ -253,57 +266,79 @@ impl fmt::Display for BigInteger {
 }
 impl From<i8> for BigInteger {
     fn from(value: i8) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<u8> for BigInteger {
     fn from(value: u8) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<i16> for BigInteger {
     fn from(value: i16) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<u16> for BigInteger {
     fn from(value: u16) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<i32> for BigInteger {
     fn from(value: i32) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<u32> for BigInteger {
     fn from(value: u32) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<i64> for BigInteger {
     fn from(value: i64) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<u64> for BigInteger {
     fn from(value: u64) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<isize> for BigInteger {
     fn from(value: isize) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl From<usize> for BigInteger {
     fn from(value: usize) -> Self {
-        BigInteger { value: BigInt::from(value) }
+        BigInteger {
+            value: BigInt::from(value),
+        }
     }
 }
 impl<'a> From<&'a FixInteger> for BigInteger {
     fn from(i: &FixInteger) -> Self {
-        BigInteger { value: BigInt::from(i.value) }
+        BigInteger {
+            value: BigInt::from(i.value),
+        }
     }
 }
 
@@ -320,7 +355,9 @@ impl fmt::Display for Float {
 }
 impl From<f32> for Float {
     fn from(value: f32) -> Self {
-        Float { value: value as f64 }
+        Float {
+            value: value as f64,
+        }
     }
 }
 impl From<f64> for Float {
@@ -339,7 +376,8 @@ pub struct Pid {
 }
 impl Pid {
     pub fn new<T>(node: T, id: u32, serial: u32, creation: u8) -> Self
-        where Atom: From<T>
+    where
+        Atom: From<T>,
     {
         Pid {
             node: Atom::from(node),
@@ -397,9 +435,9 @@ pub struct Reference {
 }
 impl fmt::Display for Reference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "#Ref<{}", self.node));
+        r#try!(write!(f, "#Ref<{}", self.node));
         for n in &self.id {
-            try!(write!(f, ".{}", n));
+            r#try!(write!(f, ".{}", n));
         }
         write!(f, ">")
     }
@@ -471,10 +509,18 @@ pub enum InternalFun {
 impl fmt::Display for InternalFun {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            InternalFun::Old { ref module, index, uniq, .. } => {
-                write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
-            }
-            InternalFun::New { ref module, index, uniq, .. } => {
+            InternalFun::Old {
+                ref module,
+                index,
+                uniq,
+                ..
+            } => write!(f, "#Fun<{}.{}.{}>", module, index, uniq),
+            InternalFun::New {
+                ref module,
+                index,
+                uniq,
+                ..
+            } => {
                 use num::bigint::Sign;
                 let uniq = BigInt::from_bytes_be(Sign::Plus, &uniq);
                 write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
@@ -490,20 +536,22 @@ pub struct Binary {
 }
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "<<"));
+        r#try!(write!(f, "<<"));
         for (i, b) in self.bytes.iter().enumerate() {
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
-            try!(write!(f, "{}", b));
+            r#try!(write!(f, "{}", b));
         }
-        try!(write!(f, ">>"));
+        r#try!(write!(f, ">>"));
         Ok(())
     }
 }
 impl<'a> From<(&'a [u8])> for Binary {
     fn from(bytes: &'a [u8]) -> Self {
-        Binary { bytes: Vec::from(bytes) }
+        Binary {
+            bytes: Vec::from(bytes),
+        }
     }
 }
 impl From<Vec<u8>> for Binary {
@@ -520,21 +568,21 @@ pub struct BitBinary {
 }
 impl fmt::Display for BitBinary {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "<<"));
+        r#try!(write!(f, "<<"));
         for (i, b) in self.bytes.iter().enumerate() {
             if i == self.bytes.len() - 1 && self.tail_bits_size == 0 {
                 break;
             }
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
             if i == self.bytes.len() - 1 && self.tail_bits_size < 8 {
-                try!(write!(f, "{}:{}", b, self.tail_bits_size));
+                r#try!(write!(f, "{}:{}", b, self.tail_bits_size));
             } else {
-                try!(write!(f, "{}", b));
+                r#try!(write!(f, "{}", b));
             }
         }
-        try!(write!(f, ">>"));
+        r#try!(write!(f, ">>"));
         Ok(())
     }
 }
@@ -563,7 +611,9 @@ pub struct List {
 impl List {
     /// Returns a nil value (i.e., an empty list).
     pub fn nil() -> Self {
-        List { elements: Vec::new() }
+        List {
+            elements: Vec::new(),
+        }
     }
 
     /// Returns `true` if it is nil value, otherwise `false`.
@@ -573,14 +623,14 @@ impl List {
 }
 impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "["));
+        r#try!(write!(f, "["));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
-            try!(write!(f, "{}", x));
+            r#try!(write!(f, "{}", x));
         }
-        try!(write!(f, "]"));
+        r#try!(write!(f, "]"));
         Ok(())
     }
 }
@@ -598,15 +648,15 @@ pub struct ImproperList {
 }
 impl fmt::Display for ImproperList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "["));
+        r#try!(write!(f, "["));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
-            try!(write!(f, "{}", x));
+            r#try!(write!(f, "{}", x));
         }
-        try!(write!(f, "|{}", self.last));
-        try!(write!(f, "]"));
+        r#try!(write!(f, "|{}", self.last));
+        r#try!(write!(f, "]"));
         Ok(())
     }
 }
@@ -626,19 +676,21 @@ pub struct Tuple {
 }
 impl Tuple {
     pub fn nil() -> Self {
-        Tuple { elements: Vec::new() }
+        Tuple {
+            elements: Vec::new(),
+        }
     }
 }
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{{"));
+        r#try!(write!(f, "{{"));
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
-            try!(write!(f, "{}", x));
+            r#try!(write!(f, "{}", x));
         }
-        try!(write!(f, "}}"));
+        r#try!(write!(f, "}}"));
         Ok(())
     }
 }
@@ -655,14 +707,14 @@ pub struct Map {
 }
 impl fmt::Display for Map {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "#{{"));
+        r#try!(write!(f, "#{{"));
         for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
             if i != 0 {
-                try!(write!(f, ","));
+                r#try!(write!(f, ","));
             }
-            try!(write!(f, "{}=>{}", k, v));
+            r#try!(write!(f, "{}=>{}", k, v));
         }
-        try!(write!(f, "}}"));
+        r#try!(write!(f, "}}"));
         Ok(())
     }
 }
@@ -675,22 +727,26 @@ impl From<Vec<(Term, Term)>> for Map {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pattern::any;
-    use pattern::U8;
+    use crate::pattern::any;
+    use crate::pattern::U8;
 
     #[test]
     fn it_works() {
         let t = Term::from(Atom::from("hoge"));
         t.as_match("hoge").unwrap();
 
-        let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
-                                            Term::from(Atom::from("bar"))]));
+        let t = Term::from(Tuple::from(vec![
+            Term::from(Atom::from("foo")),
+            Term::from(Atom::from("bar")),
+        ]));
         let (_, v) = t.as_match(("foo", any::<Atom>())).unwrap();
         assert_eq!("bar", v.name);
 
-        let t = Term::from(Tuple::from(vec![Term::from(Atom::from("foo")),
-                             Term::from(Atom::from("bar")),
-                             Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))]))]));
+        let t = Term::from(Tuple::from(vec![
+            Term::from(Atom::from("foo")),
+            Term::from(Atom::from("bar")),
+            Term::from(Tuple::from(vec![Term::from(Atom::from("bar"))])),
+        ]));
         assert!(t.as_match(("foo", "bar", "baz")).is_err());
 
         let t = Term::from(FixInteger::from(8));
