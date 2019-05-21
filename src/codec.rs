@@ -32,6 +32,7 @@ pub enum DecodeError {
         value: i32,
         range: std::ops::Range<i32>,
     },
+    NonFiniteFloat,
 }
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -49,6 +50,7 @@ impl fmt::Display for DecodeError {
                 "{} is out of range {}..{}",
                 value, range.start, range.end
             ),
+            NonFiniteFloat => write!(f, "Tried to convert non-finite float"),
         }
     }
 }
@@ -61,6 +63,7 @@ impl error::Error for DecodeError {
             UnknownTag { .. } => "Unknown term tag",
             UnexpectedType { .. } => "Unexpected term type",
             OutOfRange { .. } => "Integer value is out of range",
+            NonFiniteFloat => "Non-finite float is not supported",
         }
     }
     fn cause(&self) -> Option<&(dyn error::Error + 'static)> {
@@ -399,7 +402,7 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_new_float_ext(&mut self) -> DecodeResult {
         let value = r#try!(self.reader.read_f64::<BigEndian>());
-        Ok(Term::from(Float::from(value)))
+        Ok(Term::from(Float::try_from(value)?))
     }
     fn decode_float_ext(&mut self) -> DecodeResult {
         let mut buf = [0; 31];
@@ -410,7 +413,7 @@ impl<R: io::Read> Decoder<R> {
         let value = r#try!(float_str
             .parse::<f32>()
             .or_else(|e| aux::invalid_data_error(e.to_string())));
-        Ok(Term::from(Float::from(value as f64)))
+        Ok(Term::from(Float::try_from(value)?))
     }
     fn decode_small_integer_ext(&mut self) -> DecodeResult {
         let value = r#try!(self.reader.read_u8());
