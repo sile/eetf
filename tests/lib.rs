@@ -3,6 +3,7 @@ extern crate num;
 
 use eetf::convert::TryInto;
 use eetf::*;
+use std::convert::TryFrom;
 use std::io::Cursor;
 
 #[test]
@@ -99,13 +100,13 @@ fn integer_test() {
 #[test]
 fn float_test() {
     // Display
-    assert_eq!("123", Float::from(123.0).to_string());
-    assert_eq!("123.4", Float::from(123.4).to_string());
-    assert_eq!("-123.4", Float::from(-123.4).to_string());
+    assert_eq!("123", Float::try_from(123.0).unwrap().to_string());
+    assert_eq!("123.4", Float::try_from(123.4).unwrap().to_string());
+    assert_eq!("-123.4", Float::try_from(-123.4).unwrap().to_string());
 
     // Decode
     assert_eq!(
-        Ok(Float::from("1.23".parse::<f32>().unwrap() as f64)),
+        Ok(Float::try_from("1.23".parse::<f32>().unwrap() as f64).unwrap()),
         decode(&[
             131, 99, 49, 46, 50, 50, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 56,
             50, 50, 52, 101, 43, 48, 48, 0, 0, 0, 0, 0
@@ -114,20 +115,34 @@ fn float_test() {
     ); // FLOAT_EXT
 
     assert_eq!(
-        Ok(Float::from(123.456)),
+        Ok(Float::try_from(123.456).unwrap()),
         // NEW_FLOAT_EXT
         decode(&[131, 70, 64, 94, 221, 47, 26, 159, 190, 119]).try_into()
     );
     assert_eq!(
-        Ok(Float::from(-123.456)),
+        Ok(Float::try_from(-123.456).unwrap()),
         // NEW_FLOAT_EXT
         decode(&[131, 70, 192, 94, 221, 47, 26, 159, 190, 119]).try_into()
     );
     // Encode
     assert_eq!(
         vec![131, 70, 64, 94, 221, 47, 26, 159, 190, 119],
-        encode(Term::from(Float::from(123.456)))
+        encode(Term::from(Float::try_from(123.456).unwrap()))
     );
+
+    for f in &[std::f32::NAN, std::f32::INFINITY, std::f32::NEG_INFINITY] {
+        match Float::try_from(*f) {
+            Err(_) => assert!(true),
+            _ => assert!(false, "Non-finite value must not be converted"),
+        }
+    }
+
+    for f in &[std::f64::NAN, std::f64::INFINITY, std::f64::NEG_INFINITY] {
+        match Float::try_from(*f) {
+            Err(_) => assert!(true),
+            _ => assert!(false, "Non-finite value must not be converted"),
+        }
+    }
 }
 
 #[test]

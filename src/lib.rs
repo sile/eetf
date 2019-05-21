@@ -33,7 +33,7 @@ extern crate libflate;
 extern crate num;
 
 use num::bigint::BigInt;
-use std::convert::From;
+use std::convert::{From, TryFrom};
 use std::fmt;
 use std::io;
 
@@ -353,16 +353,28 @@ impl fmt::Display for Float {
         write!(f, "{}", self.value)
     }
 }
-impl From<f32> for Float {
-    fn from(value: f32) -> Self {
-        Float {
-            value: value as f64,
+impl TryFrom<f32> for Float {
+    type Error = DecodeError;
+
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        if value.is_finite() {
+            Ok(Float {
+                value: value as f64,
+            })
+        } else {
+            Err(DecodeError::NonFiniteFloat)
         }
     }
 }
-impl From<f64> for Float {
-    fn from(value: f64) -> Self {
-        Float { value: value }
+impl TryFrom<f64> for Float {
+    type Error = DecodeError;
+
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        if value.is_finite() {
+            Ok(Float { value: value })
+        } else {
+            Err(DecodeError::NonFiniteFloat)
+        }
     }
 }
 
