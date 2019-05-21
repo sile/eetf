@@ -1,5 +1,5 @@
-use num;
 use super::*;
+use num;
 
 pub trait TryAsRef<T> {
     fn try_as_ref(&self) -> Option<&T>;
@@ -21,7 +21,7 @@ macro_rules! impl_term_try_as_ref {
                 }
             }
         }
-    }
+    };
 }
 impl_term_try_as_ref!(Atom);
 impl_term_try_as_ref!(FixInteger);
@@ -40,12 +40,15 @@ impl_term_try_as_ref!(Tuple);
 impl_term_try_as_ref!(Map);
 
 pub trait TryInto<T> {
-    fn try_into(self) -> Result<T, Self> where Self: Sized;
+    fn try_into(self) -> Result<T, Self>
+    where
+        Self: Sized;
 }
 
 impl<T> TryInto<T> for T {
     fn try_into(self) -> Result<T, Self>
-        where Self: Sized
+    where
+        Self: Sized,
     {
         Ok(self)
     }
@@ -54,14 +57,17 @@ impl<T> TryInto<T> for T {
 macro_rules! impl_term_try_into {
     ($to:ident) => {
         impl TryInto<$to> for Term {
-            fn try_into(self) -> Result<$to, Self> where Self: Sized {
+            fn try_into(self) -> Result<$to, Self>
+            where
+                Self: Sized,
+            {
                 match self {
                     Term::$to(x) => Ok(x),
-                    _ => Err(self)
+                    _ => Err(self),
                 }
             }
         }
-    }
+    };
 }
 impl_term_try_into!(Atom);
 impl_term_try_into!(FixInteger);
@@ -139,7 +145,6 @@ impl num::traits::ToPrimitive for Term {
             Term::BigInteger(ref x) => x.to_u64(),
             _ => None,
         }
-
     }
     fn to_f64(&self) -> Option<f64> {
         match *self {
@@ -148,7 +153,6 @@ impl num::traits::ToPrimitive for Term {
             Term::Float(ref x) => x.to_f64(),
             _ => None,
         }
-
     }
 }
 
