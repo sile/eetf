@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use super::*;
 use crate::convert::AsOption;
 use crate::convert::TryAsRef;
@@ -19,7 +21,7 @@ pub trait Pattern<'a>: Debug + Clone {
         Self: 'static,
     {
         Unmatch {
-            input: input,
+            input,
             pattern: Box::new(self.clone()),
             cause: None,
         }
@@ -123,6 +125,14 @@ where
 {
     pub fn new() -> Self {
         Any(::std::marker::PhantomData)
+    }
+}
+impl<T> Default for Any<T>
+where
+    T: Debug,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 pub fn any<T>() -> Any<T>
@@ -378,7 +388,8 @@ impl<'a> Pattern<'a> for Nil {
     type Output = &'a [Term];
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
         let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
-        (l.elements.len() == 0)
+        l.elements
+            .is_empty()
             .as_option()
             .ok_or_else(|| self.unmatched(input))?;
         Ok(&l.elements)
@@ -396,7 +407,7 @@ where
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
         let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        (e.len() > 0)
+        (!e.is_empty())
             .as_option()
             .ok_or_else(|| self.unmatched(input))?;
         let h = self
@@ -420,7 +431,8 @@ impl<'a> Pattern<'a> for () {
     type Output = ();
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
         let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
-        (t.elements.len() == 0)
+        t.elements
+            .is_empty()
             .as_option()
             .ok_or_else(|| self.unmatched(input))?;
         Ok(())
@@ -640,8 +652,8 @@ where
 {
     type Output = Union2<P0::Output, P1::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let e = try_err!((self.0).0.try_match(input).map(|o| Union2::A(o)));
-        let e = try_err!((self.0).1.try_match(input).map(|o| Union2::B(o))).max_depth(e);
+        let e = try_err!((self.0).0.try_match(input).map(Union2::A));
+        let e = try_err!((self.0).1.try_match(input).map(Union2::B)).max_depth(e);
         Err(self.unmatched(input).cause(e))
     }
 }
@@ -653,9 +665,9 @@ where
 {
     type Output = Union3<P0::Output, P1::Output, P2::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let e = try_err!((self.0).0.try_match(input).map(|o| Union3::A(o)));
-        let e = try_err!((self.0).1.try_match(input).map(|o| Union3::B(o))).max_depth(e);
-        let e = try_err!((self.0).2.try_match(input).map(|o| Union3::C(o))).max_depth(e);
+        let e = try_err!((self.0).0.try_match(input).map(Union3::A));
+        let e = try_err!((self.0).1.try_match(input).map(Union3::B)).max_depth(e);
+        let e = try_err!((self.0).2.try_match(input).map(Union3::C)).max_depth(e);
         Err(self.unmatched(input).cause(e))
     }
 }
@@ -668,10 +680,10 @@ where
 {
     type Output = Union4<P0::Output, P1::Output, P2::Output, P3::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let e = try_err!((self.0).0.try_match(input).map(|o| Union4::A(o)));
-        let e = try_err!((self.0).1.try_match(input).map(|o| Union4::B(o))).max_depth(e);
-        let e = try_err!((self.0).2.try_match(input).map(|o| Union4::C(o))).max_depth(e);
-        let e = try_err!((self.0).3.try_match(input).map(|o| Union4::D(o))).max_depth(e);
+        let e = try_err!((self.0).0.try_match(input).map(Union4::A));
+        let e = try_err!((self.0).1.try_match(input).map(Union4::B)).max_depth(e);
+        let e = try_err!((self.0).2.try_match(input).map(Union4::C)).max_depth(e);
+        let e = try_err!((self.0).3.try_match(input).map(Union4::D)).max_depth(e);
         Err(self.unmatched(input).cause(e))
     }
 }
@@ -685,11 +697,11 @@ where
 {
     type Output = Union5<P0::Output, P1::Output, P2::Output, P3::Output, P4::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let e = try_err!((self.0).0.try_match(input).map(|o| Union5::A(o)));
-        let e = try_err!((self.0).1.try_match(input).map(|o| Union5::B(o))).max_depth(e);
-        let e = try_err!((self.0).2.try_match(input).map(|o| Union5::C(o))).max_depth(e);
-        let e = try_err!((self.0).3.try_match(input).map(|o| Union5::D(o))).max_depth(e);
-        let e = try_err!((self.0).4.try_match(input).map(|o| Union5::E(o))).max_depth(e);
+        let e = try_err!((self.0).0.try_match(input).map(Union5::A));
+        let e = try_err!((self.0).1.try_match(input).map(Union5::B)).max_depth(e);
+        let e = try_err!((self.0).2.try_match(input).map(Union5::C)).max_depth(e);
+        let e = try_err!((self.0).3.try_match(input).map(Union5::D)).max_depth(e);
+        let e = try_err!((self.0).4.try_match(input).map(Union5::E)).max_depth(e);
         Err(self.unmatched(input).cause(e))
     }
 }
@@ -704,12 +716,12 @@ where
 {
     type Output = Union6<P0::Output, P1::Output, P2::Output, P3::Output, P4::Output, P5::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let e = try_err!((self.0).0.try_match(input).map(|o| Union6::A(o)));
-        let e = try_err!((self.0).1.try_match(input).map(|o| Union6::B(o))).max_depth(e);
-        let e = try_err!((self.0).2.try_match(input).map(|o| Union6::C(o))).max_depth(e);
-        let e = try_err!((self.0).3.try_match(input).map(|o| Union6::D(o))).max_depth(e);
-        let e = try_err!((self.0).4.try_match(input).map(|o| Union6::E(o))).max_depth(e);
-        let e = try_err!((self.0).5.try_match(input).map(|o| Union6::F(o))).max_depth(e);
+        let e = try_err!((self.0).0.try_match(input).map(Union6::A));
+        let e = try_err!((self.0).1.try_match(input).map(Union6::B)).max_depth(e);
+        let e = try_err!((self.0).2.try_match(input).map(Union6::C)).max_depth(e);
+        let e = try_err!((self.0).3.try_match(input).map(Union6::D)).max_depth(e);
+        let e = try_err!((self.0).4.try_match(input).map(Union6::E)).max_depth(e);
+        let e = try_err!((self.0).5.try_match(input).map(Union6::F)).max_depth(e);
         Err(self.unmatched(input).cause(e))
     }
 }

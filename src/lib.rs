@@ -200,7 +200,7 @@ impl<'a> From<&'a str> for Atom {
 }
 impl From<String> for Atom {
     fn from(name: String) -> Self {
-        Atom { name: name }
+        Atom { name }
     }
 }
 
@@ -218,34 +218,34 @@ impl fmt::Display for FixInteger {
 impl From<u8> for FixInteger {
     fn from(value: u8) -> Self {
         FixInteger {
-            value: value as i32,
+            value: i32::from(value),
         }
     }
 }
 impl From<i8> for FixInteger {
     fn from(value: i8) -> Self {
         FixInteger {
-            value: value as i32,
+            value: i32::from(value),
         }
     }
 }
 impl From<u16> for FixInteger {
     fn from(value: u16) -> Self {
         FixInteger {
-            value: value as i32,
+            value: i32::from(value),
         }
     }
 }
 impl From<i16> for FixInteger {
     fn from(value: i16) -> Self {
         FixInteger {
-            value: value as i32,
+            value: i32::from(value),
         }
     }
 }
 impl From<i32> for FixInteger {
     fn from(value: i32) -> Self {
-        FixInteger { value: value }
+        FixInteger { value }
     }
 }
 
@@ -355,7 +355,7 @@ impl TryFrom<f32> for Float {
     fn try_from(value: f32) -> Result<Self, Self::Error> {
         if value.is_finite() {
             Ok(Float {
-                value: value as f64,
+                value: f64::from(value),
             })
         } else {
             Err(DecodeError::NonFiniteFloat)
@@ -367,7 +367,7 @@ impl TryFrom<f64> for Float {
 
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value.is_finite() {
-            Ok(Float { value: value })
+            Ok(Float { value })
         } else {
             Err(DecodeError::NonFiniteFloat)
         }
@@ -389,9 +389,9 @@ impl Pid {
     {
         Pid {
             node: Atom::from(node),
-            id: id,
-            serial: serial,
-            creation: creation,
+            id,
+            serial,
+            creation,
         }
     }
 }
@@ -405,8 +405,8 @@ impl<'a> From<(&'a str, u32, u32)> for Pid {
     fn from((node, id, serial): (&'a str, u32, u32)) -> Self {
         Pid {
             node: Atom::from(node),
-            id: id,
-            serial: serial,
+            id,
+            serial,
             creation: 0,
         }
     }
@@ -428,7 +428,7 @@ impl<'a> From<(&'a str, u32)> for Port {
     fn from((node, id): (&'a str, u32)) -> Self {
         Port {
             node: Atom::from(node),
-            id: id,
+            id,
             creation: 0,
         }
     }
@@ -463,7 +463,7 @@ impl<'a> From<(&'a str, Vec<u32>)> for Reference {
     fn from((node, id): (&'a str, Vec<u32>)) -> Self {
         Reference {
             node: Atom::from(node),
-            id: id,
+            id,
             creation: 0,
         }
     }
@@ -486,7 +486,7 @@ impl<'a, 'b> From<(&'a str, &'b str, u8)> for ExternalFun {
         ExternalFun {
             module: Atom::from(module),
             function: Atom::from(function),
-            arity: arity,
+            arity,
         }
     }
 }
@@ -564,7 +564,7 @@ impl<'a> From<(&'a [u8])> for Binary {
 }
 impl From<Vec<u8>> for Binary {
     fn from(bytes: Vec<u8>) -> Self {
-        Binary { bytes: bytes }
+        Binary { bytes }
     }
 }
 
@@ -605,8 +605,8 @@ impl From<Binary> for BitBinary {
 impl From<(Vec<u8>, u8)> for BitBinary {
     fn from((bytes, tail_bits_size): (Vec<u8>, u8)) -> Self {
         BitBinary {
-            bytes: bytes,
-            tail_bits_size: tail_bits_size,
+            bytes,
+            tail_bits_size,
         }
     }
 }
@@ -644,7 +644,7 @@ impl fmt::Display for List {
 }
 impl From<Vec<Term>> for List {
     fn from(elements: Vec<Term>) -> Self {
-        List { elements: elements }
+        List { elements }
     }
 }
 
@@ -671,7 +671,7 @@ impl fmt::Display for ImproperList {
 impl From<(Vec<Term>, Term)> for ImproperList {
     fn from((elements, last): (Vec<Term>, Term)) -> Self {
         ImproperList {
-            elements: elements,
+            elements,
             last: Box::new(last),
         }
     }
@@ -704,7 +704,7 @@ impl fmt::Display for Tuple {
 }
 impl From<Vec<Term>> for Tuple {
     fn from(elements: Vec<Term>) -> Self {
-        Tuple { elements: elements }
+        Tuple { elements }
     }
 }
 
@@ -728,7 +728,7 @@ impl fmt::Display for Map {
 }
 impl From<Vec<(Term, Term)>> for Map {
     fn from(entries: Vec<(Term, Term)>) -> Self {
-        Map { entries: entries }
+        Map { entries }
     }
 }
 

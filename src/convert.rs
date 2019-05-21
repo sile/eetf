@@ -100,13 +100,13 @@ impl AsOption for bool {
 
 impl num::traits::ToPrimitive for FixInteger {
     fn to_i64(&self) -> Option<i64> {
-        Some(self.value as i64)
+        Some(i64::from(self.value))
     }
     fn to_u64(&self) -> Option<u64> {
         Some(self.value as u64)
     }
     fn to_f64(&self) -> Option<f64> {
-        Some(self.value as f64)
+        Some(f64::from(self.value))
     }
 }
 impl num::traits::ToPrimitive for BigInteger {
