@@ -145,10 +145,10 @@ where
 impl<'a> Pattern<'a> for &'static str {
     type Output = Self;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let a: &Atom = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
-        r#try!((*self == a.name)
+        let a: &Atom = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
+        (*self == a.name)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
+            .ok_or_else(|| self.unmatched(input))?;
         Ok(*self)
     }
 }
@@ -161,13 +161,14 @@ where
 {
     type Output = Vec<P::Output>;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let mut outputs = Vec::with_capacity(l.elements.len());
         for e in &l.elements {
-            outputs.push(r#try!(self
-                .0
-                .try_match(e)
-                .map_err(|e| self.unmatched(input).cause(e))));
+            outputs.push(
+                self.0
+                    .try_match(e)
+                    .map_err(|e| self.unmatched(input).cause(e))?,
+            );
         }
         Ok(outputs)
     }
@@ -181,15 +182,15 @@ where
 {
     type Output = P0::Output;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 1)
+        (e.len() == 1)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok(o0)
     }
 }
@@ -201,19 +202,19 @@ where
 {
     type Output = (P0::Output, P1::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 2)
+        (e.len() == 2)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = (self.0)
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1))
     }
 }
@@ -226,23 +227,23 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 3)
+        (e.len() == 3)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = (self.0)
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = (self.0)
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2))
     }
 }
@@ -256,27 +257,27 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output, P3::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 4)
+        (e.len() == 4)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = (self.0)
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = (self.0)
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = (self.0)
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3))
     }
 }
@@ -291,31 +292,31 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output, P3::Output, P4::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 5)
+        (e.len() == 5)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = (self.0)
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = (self.0)
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = (self.0)
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o4 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o4 = (self.0)
             .4
             .try_match(&e[4])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3, o4))
     }
 }
@@ -338,35 +339,35 @@ where
         P5::Output,
     );
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() == 6)
+        (e.len() == 6)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!((self.0)
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = (self.0)
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = (self.0)
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = (self.0)
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = (self.0)
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o4 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o4 = (self.0)
             .4
             .try_match(&e[4])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o5 = r#try!((self.0)
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o5 = (self.0)
             .5
             .try_match(&e[5])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3, o4, o5))
     }
 }
@@ -376,10 +377,10 @@ pub struct Nil;
 impl<'a> Pattern<'a> for Nil {
     type Output = &'a [Term];
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
-        r#try!((l.elements.len() == 0)
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
+        (l.elements.len() == 0)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
+            .ok_or_else(|| self.unmatched(input))?;
         Ok(&l.elements)
     }
 }
@@ -393,22 +394,23 @@ where
 {
     type Output = (P0::Output, Vec<P1::Output>);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &l.elements;
-        r#try!((e.len() > 0)
+        (e.len() > 0)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let h = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let h = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
 
         let mut tail = Vec::with_capacity(l.elements.len() - 1);
         for e in &l.elements[1..] {
-            tail.push(r#try!(self
-                .1
-                .try_match(e)
-                .map_err(|e| self.unmatched(input).cause(e))));
+            tail.push(
+                self.1
+                    .try_match(e)
+                    .map_err(|e| self.unmatched(input).cause(e))?,
+            );
         }
         Ok((h, tail))
     }
@@ -417,10 +419,10 @@ where
 impl<'a> Pattern<'a> for () {
     type Output = ();
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
-        r#try!((t.elements.len() == 0)
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
+        (t.elements.len() == 0)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
+            .ok_or_else(|| self.unmatched(input))?;
         Ok(())
     }
 }
@@ -431,14 +433,14 @@ where
 {
     type Output = P0::Output;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
-        r#try!((t.elements.len() == 1)
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
+        (t.elements.len() == 1)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&t.elements[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok(o0)
     }
 }
@@ -450,19 +452,19 @@ where
 {
     type Output = (P0::Output, P1::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &t.elements;
-        r#try!((e.len() == 2)
+        (e.len() == 2)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = self
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1))
     }
 }
@@ -475,23 +477,23 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &t.elements;
-        r#try!((e.len() == 3)
+        (e.len() == 3)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = self
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = self
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2))
     }
 }
@@ -505,27 +507,27 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output, P3::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &t.elements;
-        r#try!((e.len() == 4)
+        (e.len() == 4)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = self
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = self
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = self
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3))
     }
 }
@@ -540,31 +542,31 @@ where
 {
     type Output = (P0::Output, P1::Output, P2::Output, P3::Output, P4::Output);
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &t.elements;
-        r#try!((e.len() == 5)
+        (e.len() == 5)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = self
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = self
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = self
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o4 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o4 = self
             .4
             .try_match(&e[4])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3, o4))
     }
 }
@@ -587,35 +589,35 @@ where
         P5::Output,
     );
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let t: &Tuple = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let t: &Tuple = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let e = &t.elements;
-        r#try!((e.len() == 6)
+        (e.len() == 6)
             .as_option()
-            .ok_or_else(|| self.unmatched(input)));
-        let o0 = r#try!(self
+            .ok_or_else(|| self.unmatched(input))?;
+        let o0 = self
             .0
             .try_match(&e[0])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o1 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o1 = self
             .1
             .try_match(&e[1])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o2 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o2 = self
             .2
             .try_match(&e[2])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o3 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o3 = self
             .3
             .try_match(&e[3])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o4 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o4 = self
             .4
             .try_match(&e[4])
-            .map_err(|e| self.unmatched(input).cause(e)));
-        let o5 = r#try!(self
+            .map_err(|e| self.unmatched(input).cause(e))?;
+        let o5 = self
             .5
             .try_match(&e[5])
-            .map_err(|e| self.unmatched(input).cause(e)));
+            .map_err(|e| self.unmatched(input).cause(e))?;
         Ok((o0, o1, o2, o3, o4, o5))
     }
 }
@@ -717,7 +719,7 @@ pub struct Ascii;
 impl<'a> Pattern<'a> for Ascii {
     type Output = char;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let n = r#try!(input.to_u8().ok_or_else(|| self.unmatched(input)));
+        let n = input.to_u8().ok_or_else(|| self.unmatched(input))?;
         if n < 0x80 {
             Ok(n as char)
         } else {
@@ -731,7 +733,7 @@ pub struct Unicode;
 impl<'a> Pattern<'a> for Unicode {
     type Output = char;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let n = r#try!(input.to_u32().ok_or_else(|| self.unmatched(input)));
+        let n = input.to_u32().ok_or_else(|| self.unmatched(input))?;
         ::std::char::from_u32(n).ok_or_else(|| self.unmatched(input))
     }
 }
@@ -744,13 +746,13 @@ where
 {
     type Output = String;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
-        let l: &List = r#try!(input.try_as_ref().ok_or_else(|| self.unmatched(input)));
+        let l: &List = input.try_as_ref().ok_or_else(|| self.unmatched(input))?;
         let mut s = String::with_capacity(l.elements.len());
         for e in &l.elements {
-            let c = r#try!(self
+            let c = self
                 .0
                 .try_match(e)
-                .map_err(|e| self.unmatched(input).cause(e)));
+                .map_err(|e| self.unmatched(input).cause(e))?;
             s.push(c);
         }
         Ok(s)

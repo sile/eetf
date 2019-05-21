@@ -28,10 +28,6 @@
 //!
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
-extern crate byteorder;
-extern crate libflate;
-extern crate num;
-
 use num::bigint::BigInt;
 use std::convert::{From, TryFrom};
 use std::fmt;
@@ -447,9 +443,9 @@ pub struct Reference {
 }
 impl fmt::Display for Reference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "#Ref<{}", self.node));
+        write!(f, "#Ref<{}", self.node)?;
         for n in &self.id {
-            r#try!(write!(f, ".{}", n));
+            write!(f, ".{}", n)?;
         }
         write!(f, ">")
     }
@@ -548,14 +544,14 @@ pub struct Binary {
 }
 impl fmt::Display for Binary {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "<<"));
+        write!(f, "<<")?;
         for (i, b) in self.bytes.iter().enumerate() {
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
-            r#try!(write!(f, "{}", b));
+            write!(f, "{}", b)?;
         }
-        r#try!(write!(f, ">>"));
+        write!(f, ">>")?;
         Ok(())
     }
 }
@@ -580,21 +576,21 @@ pub struct BitBinary {
 }
 impl fmt::Display for BitBinary {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "<<"));
+        write!(f, "<<")?;
         for (i, b) in self.bytes.iter().enumerate() {
             if i == self.bytes.len() - 1 && self.tail_bits_size == 0 {
                 break;
             }
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
             if i == self.bytes.len() - 1 && self.tail_bits_size < 8 {
-                r#try!(write!(f, "{}:{}", b, self.tail_bits_size));
+                write!(f, "{}:{}", b, self.tail_bits_size)?;
             } else {
-                r#try!(write!(f, "{}", b));
+                write!(f, "{}", b)?;
             }
         }
-        r#try!(write!(f, ">>"));
+        write!(f, ">>")?;
         Ok(())
     }
 }
@@ -635,14 +631,14 @@ impl List {
 }
 impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "["));
+        write!(f, "[")?;
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
-            r#try!(write!(f, "{}", x));
+            write!(f, "{}", x)?;
         }
-        r#try!(write!(f, "]"));
+        write!(f, "]")?;
         Ok(())
     }
 }
@@ -660,15 +656,15 @@ pub struct ImproperList {
 }
 impl fmt::Display for ImproperList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "["));
+        write!(f, "[")?;
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
-            r#try!(write!(f, "{}", x));
+            write!(f, "{}", x)?;
         }
-        r#try!(write!(f, "|{}", self.last));
-        r#try!(write!(f, "]"));
+        write!(f, "|{}", self.last)?;
+        write!(f, "]")?;
         Ok(())
     }
 }
@@ -695,14 +691,14 @@ impl Tuple {
 }
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "{{"));
+        write!(f, "{{")?;
         for (i, x) in self.elements.iter().enumerate() {
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
-            r#try!(write!(f, "{}", x));
+            write!(f, "{}", x)?;
         }
-        r#try!(write!(f, "}}"));
+        write!(f, "}}")?;
         Ok(())
     }
 }
@@ -719,14 +715,14 @@ pub struct Map {
 }
 impl fmt::Display for Map {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(write!(f, "#{{"));
+        write!(f, "#{{")?;
         for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
             if i != 0 {
-                r#try!(write!(f, ","));
+                write!(f, ",")?;
             }
-            r#try!(write!(f, "{}=>{}", k, v));
+            write!(f, "{}=>{}", k, v)?;
         }
-        r#try!(write!(f, "}}"));
+        write!(f, "}}")?;
         Ok(())
     }
 }
