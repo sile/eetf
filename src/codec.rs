@@ -8,125 +8,49 @@ use libflate::zlib;
 use num::bigint::BigInt;
 use std;
 use std::convert::From;
-use std::error;
-use std::fmt;
 use std::io;
 use std::io::Write;
 use std::str;
 
 /// Errors which can occur when decoding a term
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
-    Io(io::Error),
-    UnsupportedVersion {
-        version: u8,
-    },
-    UnknownTag {
-        tag: u8,
-    },
-    UnexpectedType {
-        value: Term,
-        expected: String,
-    },
+    #[error("I/O error")]
+    Io(#[from] io::Error),
+
+    #[error("the format version {version} is unsupported")]
+    UnsupportedVersion { version: u8 },
+
+    #[error("unknown tag {tag}")]
+    UnknownTag { tag: u8 },
+
+    #[error("{value} is not a {expected}")]
+    UnexpectedType { value: Term, expected: String },
+
+    #[error("{value} is out of range {range:?}")]
     OutOfRange {
         value: i32,
         range: std::ops::Range<i32>,
     },
+
+    #[error("tried to convert non-finite float")]
     NonFiniteFloat,
-}
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::DecodeError::*;
-        match *self {
-            Io(ref x) => x.fmt(f),
-            UnsupportedVersion { version } => write!(f, "Unsupported version {}", version),
-            UnknownTag { tag } => write!(f, "Unknown tag {}", tag),
-            UnexpectedType {
-                ref value,
-                ref expected,
-            } => write!(f, "{} is not a {}", value, expected),
-            OutOfRange { value, ref range } => write!(
-                f,
-                "{} is out of range {}..{}",
-                value, range.start, range.end
-            ),
-            NonFiniteFloat => write!(f, "Tried to convert non-finite float"),
-        }
-    }
-}
-impl error::Error for DecodeError {
-    fn description(&self) -> &str {
-        use self::DecodeError::*;
-        match *self {
-            Io(ref x) => x.description(),
-            UnsupportedVersion { .. } => "Unsupported format version",
-            UnknownTag { .. } => "Unknown term tag",
-            UnexpectedType { .. } => "Unexpected term type",
-            OutOfRange { .. } => "Integer value is out of range",
-            NonFiniteFloat => "Non-finite float is not supported",
-        }
-    }
-    fn cause(&self) -> Option<&(dyn error::Error + 'static)> {
-        match *self {
-            DecodeError::Io(ref x) => x.source(),
-            _ => None,
-        }
-    }
-}
-impl From<io::Error> for DecodeError {
-    fn from(err: io::Error) -> DecodeError {
-        DecodeError::Io(err)
-    }
 }
 
 /// Errors which can occur when encoding a term
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum EncodeError {
-    Io(io::Error),
+    #[error("I/O error")]
+    Io(#[from] io::Error),
+
+    #[error("too long atom name: {} bytes", .0.name.len())]
     TooLongAtomName(Atom),
+
+    #[error("too large integer value: {} bytes required to encode", .0.value.to_bytes_le().1.len())]
     TooLargeInteger(BigInteger),
+
+    #[error("too large reference ID: {} bytes required to encode", .0.id.len() * 4)]
     TooLargeReferenceId(Reference),
-}
-impl fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::EncodeError::*;
-        match *self {
-            Io(ref x) => x.fmt(f),
-            TooLongAtomName(ref x) => write!(f, "Too long atom name: {} bytes", x.name.len()),
-            TooLargeInteger(ref x) => write!(
-                f,
-                "Too large integer value: {} bytes required to encode",
-                x.value.to_bytes_le().1.len()
-            ),
-            TooLargeReferenceId(ref x) => write!(
-                f,
-                "Too large reference ID: {} bytes required to encode",
-                x.id.len() * 4
-            ),
-        }
-    }
-}
-impl error::Error for EncodeError {
-    fn description(&self) -> &str {
-        use self::EncodeError::*;
-        match *self {
-            Io(ref x) => x.description(),
-            TooLongAtomName(_) => "Too long atom name",
-            TooLargeInteger(_) => "Too large integer value",
-            TooLargeReferenceId(_) => "Too large reference identifier",
-        }
-    }
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match *self {
-            EncodeError::Io(ref x) => x.source(),
-            _ => None,
-        }
-    }
-}
-impl From<io::Error> for EncodeError {
-    fn from(err: io::Error) -> EncodeError {
-        EncodeError::Io(err)
-    }
 }
 
 pub type DecodeResult = Result<Term, DecodeError>;
