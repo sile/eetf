@@ -6,7 +6,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use libflate::zlib;
 use num::bigint::BigInt;
-use std;
 use std::convert::From;
 use std::io;
 use std::io::Write;
@@ -151,6 +150,7 @@ impl<R: io::Read> Decoder<R> {
         let mut decoder = Decoder::new(zlib_decoder);
         decoder.decode_term()
     }
+    #[allow(clippy::unnecessary_wraps)]
     fn decode_nil_ext(&mut self) -> DecodeResult {
         Ok(Term::from(List::nil()))
     }

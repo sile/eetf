@@ -3,11 +3,9 @@
 use super::*;
 use crate::convert::AsOption;
 use crate::convert::TryAsRef;
-use num;
 use num::bigint::ToBigInt;
 use num::bigint::ToBigUint;
 use num::traits::ToPrimitive;
-use std;
 use std::fmt::Debug;
 
 pub type Result<'a, T> = std::result::Result<T, Unmatch<'a>>;
@@ -64,16 +62,10 @@ pub enum Union2<A, B> {
 }
 impl<A, B> Union2<A, B> {
     pub fn is_a(&self) -> bool {
-        match *self {
-            Union2::A(_) => true,
-            _ => false,
-        }
+        matches!(*self, Union2::A(_))
     }
     pub fn is_b(&self) -> bool {
-        match *self {
-            Union2::B(_) => true,
-            _ => false,
-        }
+        matches!(*self, Union2::B(_))
     }
     pub fn into_result(self) -> ::std::result::Result<A, B> {
         match self {
