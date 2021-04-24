@@ -31,7 +31,7 @@ pub trait Pattern<'a>: Debug + Clone {
 #[derive(Debug)]
 pub struct Unmatch<'a> {
     pub input: &'a Term,
-    pub pattern: Box<Debug>,
+    pub pattern: Box<dyn Debug>,
     pub cause: Option<Box<Unmatch<'a>>>,
 }
 impl<'a> Unmatch<'a> {
