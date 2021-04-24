@@ -16,6 +16,6 @@ travis-ci = {repository = "sile/eetf"}
 codecov = {repository = "sile/eetf"}
 
 [dependencies]
-num = "0.2"
+num = "0.4"
 byteorder = "1"
-libflate = "0.1"
+libflate = "1"
