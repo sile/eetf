@@ -15,13 +15,3 @@ Documentation
 See [RustDoc Documentation](https://docs.rs/eetf).
 
 The documentation includes some examples.
-
-Installation
-------------
-
-Add following lines to your `Cargo.toml`:
-
-```toml
-[dependencies]
-eetf = "0.4"
-```
