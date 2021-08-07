@@ -62,6 +62,7 @@ const NEW_FLOAT_EXT: u8 = 70;
 const BIT_BINARY_EXT: u8 = 77;
 const COMPRESSED_TERM: u8 = 80;
 const ATOM_CACHE_REF: u8 = 82;
+const NEW_PID_EXT: u8 = 88;
 const SMALL_INTEGER_EXT: u8 = 97;
 const INTEGER_EXT: u8 = 98;
 const FLOAT_EXT: u8 = 99;
@@ -125,6 +126,7 @@ impl<R: io::Read> Decoder<R> {
             REFERENCE_EXT => self.decode_reference_ext(),
             PORT_EXT => self.decode_port_ext(),
             PID_EXT => self.decode_pid_ext(),
+            NEW_PID_EXT => self.decode_new_pid_ext(),
             SMALL_TUPLE_EXT => self.decode_small_tuple_ext(),
             LARGE_TUPLE_EXT => self.decode_large_tuple_ext(),
             NIL_EXT => self.decode_nil_ext(),
@@ -226,7 +228,16 @@ impl<R: io::Read> Decoder<R> {
             node,
             id: self.reader.read_u32::<BigEndian>()?,
             serial: self.reader.read_u32::<BigEndian>()?,
-            creation: self.reader.read_u8()?,
+            creation: self.reader.read_u8()? as u32,
+        }))
+    }
+    fn decode_new_pid_ext(&mut self) -> DecodeResult {
+        let node = self.decode_term().and_then(aux::term_into_atom)?;
+        Ok(Term::from(Pid {
+            node,
+            id: self.reader.read_u32::<BigEndian>()?,
+            serial: self.reader.read_u32::<BigEndian>()?,
+            creation: self.reader.read_u32::<BigEndian>()?,
         }))
     }
     fn decode_port_ext(&mut self) -> DecodeResult {
@@ -543,11 +554,11 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_pid(&mut self, x: &Pid) -> EncodeResult {
-        self.writer.write_u8(PID_EXT)?;
+        self.writer.write_u8(NEW_PID_EXT)?;
         self.encode_atom(&x.node)?;
         self.writer.write_u32::<BigEndian>(x.id)?;
         self.writer.write_u32::<BigEndian>(x.serial)?;
-        self.writer.write_u8(x.creation)?;
+        self.writer.write_u32::<BigEndian>(x.creation)?;
         Ok(())
     }
     fn encode_port(&mut self, x: &Port) -> EncodeResult {

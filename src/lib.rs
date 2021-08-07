@@ -380,10 +380,10 @@ pub struct Pid {
     pub node: Atom,
     pub id: u32,
     pub serial: u32,
-    pub creation: u8,
+    pub creation: u32,
 }
 impl Pid {
-    pub fn new<T>(node: T, id: u32, serial: u32, creation: u8) -> Self
+    pub fn new<T>(node: T, id: u32, serial: u32, creation: u32) -> Self
     where
         Atom: From<T>,
     {
