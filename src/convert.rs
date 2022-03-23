@@ -1,4 +1,5 @@
 use super::*;
+use std::convert::TryInto;
 
 pub trait TryAsRef<T> {
     fn try_as_ref(&self) -> Option<&T>;
@@ -38,24 +39,11 @@ impl_term_try_as_ref!(ImproperList);
 impl_term_try_as_ref!(Tuple);
 impl_term_try_as_ref!(Map);
 
-pub trait TryInto<T> {
-    fn try_into(self) -> Result<T, Self>
-    where
-        Self: Sized;
-}
-
-impl<T> TryInto<T> for T {
-    fn try_into(self) -> Result<T, Self>
-    where
-        Self: Sized,
-    {
-        Ok(self)
-    }
-}
-
 macro_rules! impl_term_try_into {
     ($to:ident) => {
         impl TryInto<$to> for Term {
+            type Error = Self;
+
             fn try_into(self) -> Result<$to, Self>
             where
                 Self: Sized,

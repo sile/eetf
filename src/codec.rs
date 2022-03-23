@@ -1,6 +1,5 @@
 use super::*;
 use crate::convert::TryAsRef;
-use crate::convert::TryInto;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
@@ -643,7 +642,6 @@ impl<W: io::Write> Encoder<W> {
 }
 
 mod aux {
-    use crate::convert::TryInto;
     use num::bigint::Sign;
     use std::io;
     use std::ops::Range;
