@@ -1,9 +1,7 @@
 extern crate eetf;
 extern crate num;
 
-use eetf::convert::TryInto;
 use eetf::*;
-use std::convert::TryFrom;
 use std::io::Cursor;
 
 #[test]

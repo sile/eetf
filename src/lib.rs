@@ -29,7 +29,6 @@
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
 use num::bigint::BigInt;
-use std::convert::{From, TryFrom};
 use std::fmt;
 use std::io;
 
@@ -187,7 +186,7 @@ impl fmt::Display for Atom {
         write!(
             f,
             "'{}'",
-            self.name.replace("\\", "\\\\").replace("'", "\\'")
+            self.name.replace('\\', "\\\\").replace('\'', "\\'")
         )
     }
 }
