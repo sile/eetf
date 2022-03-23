@@ -186,7 +186,7 @@ impl fmt::Display for Atom {
         write!(
             f,
             "'{}'",
-            self.name.replace("\\", "\\\\").replace("'", "\\'")
+            self.name.replace('\\', "\\\\").replace('\'', "\\'")
         )
     }
 }
