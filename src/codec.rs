@@ -62,11 +62,13 @@ const BIT_BINARY_EXT: u8 = 77;
 const COMPRESSED_TERM: u8 = 80;
 const ATOM_CACHE_REF: u8 = 82;
 const NEW_PID_EXT: u8 = 88;
+const NEW_PORT_EXT: u8 = 89;
+const NEWER_REFERENCE_EXT: u8 = 90;
 const SMALL_INTEGER_EXT: u8 = 97;
 const INTEGER_EXT: u8 = 98;
 const FLOAT_EXT: u8 = 99;
-const ATOM_EXT: u8 = 100;
-const REFERENCE_EXT: u8 = 101;
+const ATOM_EXT: u8 = 100; // deprecated
+const REFERENCE_EXT: u8 = 101; // deprecated
 const PORT_EXT: u8 = 102;
 const PID_EXT: u8 = 103;
 const SMALL_TUPLE_EXT: u8 = 104;
@@ -80,11 +82,12 @@ const LARGE_BIG_EXT: u8 = 111;
 const NEW_FUN_EXT: u8 = 112;
 const EXPORT_EXT: u8 = 113;
 const NEW_REFERENCE_EXT: u8 = 114;
-const SMALL_ATOM_EXT: u8 = 115;
+const SMALL_ATOM_EXT: u8 = 115; // deprecated
 const MAP_EXT: u8 = 116;
 const FUN_EXT: u8 = 117;
 const ATOM_UTF8_EXT: u8 = 118;
 const SMALL_ATOM_UTF8_EXT: u8 = 119;
+const V4_PORT_EXT: u8 = 120;
 
 pub struct Decoder<R> {
     reader: R,
