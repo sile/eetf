@@ -449,7 +449,7 @@ impl<'a> From<(&'a str, u32)> for Port {
 pub struct Reference {
     pub node: Atom,
     pub id: Vec<u32>,
-    pub creation: u8,
+    pub creation: u32,
 }
 impl fmt::Display for Reference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -145,6 +145,7 @@ impl<R: io::Read> Decoder<R> {
             FUN_EXT => self.decode_fun_ext(),
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
+            NEWER_REFERENCE_EXT => self.decode_newer_reference_ext(),
             _ => Err(DecodeError::UnknownTag { tag }),
         }
     }
@@ -260,13 +261,23 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Reference {
             node,
             id: vec![self.reader.read_u32::<BigEndian>()?],
-            creation: self.reader.read_u8()?,
+            creation: u32::from(self.reader.read_u8()?),
         }))
     }
     fn decode_new_reference_ext(&mut self) -> DecodeResult {
         let id_count = self.reader.read_u16::<BigEndian>()? as usize;
         let node = self.decode_term().and_then(aux::term_into_atom)?;
-        let creation = self.reader.read_u8()?;
+        let creation = u32::from(self.reader.read_u8()?);
+        let mut id = Vec::with_capacity(id_count);
+        for _ in 0..id_count {
+            id.push(self.reader.read_u32::<BigEndian>()?);
+        }
+        Ok(Term::from(Reference { node, id, creation }))
+    }
+    fn decode_newer_reference_ext(&mut self) -> DecodeResult {
+        let id_count = self.reader.read_u16::<BigEndian>()? as usize;
+        let node = self.decode_term().and_then(aux::term_into_atom)?;
+        let creation = self.reader.read_u32::<BigEndian>()?;
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
             id.push(self.reader.read_u32::<BigEndian>()?);
@@ -571,13 +582,13 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_reference(&mut self, x: &Reference) -> EncodeResult {
-        self.writer.write_u8(NEW_REFERENCE_EXT)?;
+        self.writer.write_u8(NEWER_REFERENCE_EXT)?;
         if x.id.len() > std::u16::MAX as usize {
             return Err(EncodeError::TooLargeReferenceId(x.clone()));
         }
         self.writer.write_u16::<BigEndian>(x.id.len() as u16)?;
         self.encode_atom(&x.node)?;
-        self.writer.write_u8(x.creation)?;
+        self.writer.write_u32::<BigEndian>(x.creation)?;
         for n in &x.id {
             self.writer.write_u32::<BigEndian>(*n)?;
         }
