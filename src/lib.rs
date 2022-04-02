@@ -42,7 +42,7 @@ pub use crate::codec::EncodeError;
 pub use crate::codec::EncodeResult;
 
 /// Term.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Term {
     Atom(Atom),
     FixInteger(FixInteger),
@@ -176,7 +176,7 @@ impl From<Map> for Term {
 }
 
 /// Atom.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Atom {
     /// The name of the atom.
     pub name: String,
@@ -204,7 +204,7 @@ impl From<String> for Atom {
 }
 
 /// Fixed width integer.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct FixInteger {
     /// The value of the integer
     pub value: i32,
@@ -249,7 +249,7 @@ impl From<i32> for FixInteger {
 }
 
 /// Multiple precision integer.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BigInteger {
     /// The value of the integer
     pub value: BigInt,
@@ -338,7 +338,7 @@ impl<'a> From<&'a FixInteger> for BigInteger {
 }
 
 /// Floating point number
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Float {
     /// The value of the number
     pub value: f64,
@@ -372,9 +372,20 @@ impl TryFrom<f64> for Float {
         }
     }
 }
+impl PartialEq for Float {
+    fn eq(&self, other: &Self) -> bool {
+        ordered_float::OrderedFloat(self.value) == ordered_float::OrderedFloat(other.value)
+    }
+}
+impl Eq for Float {}
+impl std::hash::Hash for Float {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        ordered_float::OrderedFloat(self.value).hash(state);
+    }
+}
 
 /// Process Identifier.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Pid {
     pub node: Atom,
     pub id: u32,
@@ -412,7 +423,7 @@ impl<'a> From<(&'a str, u32, u32)> for Pid {
 }
 
 /// Port.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Port {
     pub node: Atom,
     pub id: u32,
@@ -434,7 +445,7 @@ impl<'a> From<(&'a str, u32)> for Port {
 }
 
 /// Reference.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Reference {
     pub node: Atom,
     pub id: Vec<u32>,
@@ -469,7 +480,7 @@ impl<'a> From<(&'a str, Vec<u32>)> for Reference {
 }
 
 /// External Function.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ExternalFun {
     pub module: Atom,
     pub function: Atom,
@@ -491,7 +502,7 @@ impl<'a, 'b> From<(&'a str, &'b str, u8)> for ExternalFun {
 }
 
 /// Internal Function.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum InternalFun {
     /// Old representation.
     Old {
@@ -537,7 +548,7 @@ impl fmt::Display for InternalFun {
 }
 
 /// Binary.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Binary {
     pub bytes: Vec<u8>,
 }
@@ -568,7 +579,7 @@ impl From<Vec<u8>> for Binary {
 }
 
 /// Bit string.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BitBinary {
     pub bytes: Vec<u8>,
     pub tail_bits_size: u8,
@@ -611,7 +622,7 @@ impl From<(Vec<u8>, u8)> for BitBinary {
 }
 
 /// List.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct List {
     pub elements: Vec<Term>,
 }
@@ -648,7 +659,7 @@ impl From<Vec<Term>> for List {
 }
 
 /// Improper list.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ImproperList {
     pub elements: Vec<Term>,
     pub last: Box<Term>,
@@ -677,7 +688,7 @@ impl From<(Vec<Term>, Term)> for ImproperList {
 }
 
 /// Tuple.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Tuple {
     pub elements: Vec<Term>,
 }
@@ -708,7 +719,7 @@ impl From<Vec<Term>> for Tuple {
 }
 
 /// Map.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Map {
     pub entries: Vec<(Term, Term)>,
 }
