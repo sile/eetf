@@ -233,7 +233,7 @@ fn reference_test() {
 
     // Encode
     assert_eq!(
-        vec![131, 114, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 123],
+        vec![131, 90, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 0, 0, 0, 123],
         encode(Term::from(Reference::from(("foo", 123))))
     );
 }
