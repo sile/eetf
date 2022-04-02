@@ -127,6 +127,7 @@ impl<R: io::Read> Decoder<R> {
             ATOM_EXT => self.decode_atom_ext(),
             REFERENCE_EXT => self.decode_reference_ext(),
             PORT_EXT => self.decode_port_ext(),
+            NEW_PORT_EXT => self.decode_new_port_ext(),
             PID_EXT => self.decode_pid_ext(),
             NEW_PID_EXT => self.decode_new_pid_ext(),
             SMALL_TUPLE_EXT => self.decode_small_tuple_ext(),
@@ -253,7 +254,20 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Port {
             node,
             id: self.reader.read_u32::<BigEndian>()?,
-            creation: self.reader.read_u8()?,
+            creation: u32::from(self.reader.read_u8()?),
+        }))
+    }
+    fn decode_new_port_ext(&mut self) -> DecodeResult {
+        let node: Atom = self.decode_term().and_then(|t| {
+            t.try_into().map_err(|t| DecodeError::UnexpectedType {
+                value: t,
+                expected: "Atom".to_string(),
+            })
+        })?;
+        Ok(Term::from(Port {
+            node,
+            id: self.reader.read_u32::<BigEndian>()?,
+            creation: self.reader.read_u32::<BigEndian>()?,
         }))
     }
     fn decode_reference_ext(&mut self) -> DecodeResult {
@@ -575,10 +589,10 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_port(&mut self, x: &Port) -> EncodeResult {
-        self.writer.write_u8(PORT_EXT)?;
+        self.writer.write_u8(NEW_PORT_EXT)?;
         self.encode_atom(&x.node)?;
         self.writer.write_u32::<BigEndian>(x.id)?;
-        self.writer.write_u8(x.creation)?;
+        self.writer.write_u32::<BigEndian>(x.creation)?;
         Ok(())
     }
     fn encode_reference(&mut self, x: &Reference) -> EncodeResult {

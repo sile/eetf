@@ -427,7 +427,7 @@ impl<'a> From<(&'a str, u32, u32)> for Pid {
 pub struct Port {
     pub node: Atom,
     pub id: u32,
-    pub creation: u8,
+    pub creation: u32,
 }
 impl fmt::Display for Port {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
