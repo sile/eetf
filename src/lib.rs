@@ -426,8 +426,8 @@ impl<'a> From<(&'a str, u32, u32)> for Pid {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Port {
     pub node: Atom,
-    pub id: u32,
-    pub creation: u8,
+    pub id: u64,
+    pub creation: u32,
 }
 impl fmt::Display for Port {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -438,7 +438,7 @@ impl<'a> From<(&'a str, u32)> for Port {
     fn from((node, id): (&'a str, u32)) -> Self {
         Port {
             node: Atom::from(node),
-            id,
+            id: u64::from(id),
             creation: 0,
         }
     }
@@ -449,7 +449,7 @@ impl<'a> From<(&'a str, u32)> for Port {
 pub struct Reference {
     pub node: Atom,
     pub id: Vec<u32>,
-    pub creation: u8,
+    pub creation: u32,
 }
 impl fmt::Display for Reference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -62,11 +62,13 @@ const BIT_BINARY_EXT: u8 = 77;
 const COMPRESSED_TERM: u8 = 80;
 const ATOM_CACHE_REF: u8 = 82;
 const NEW_PID_EXT: u8 = 88;
+const NEW_PORT_EXT: u8 = 89;
+const NEWER_REFERENCE_EXT: u8 = 90;
 const SMALL_INTEGER_EXT: u8 = 97;
 const INTEGER_EXT: u8 = 98;
 const FLOAT_EXT: u8 = 99;
-const ATOM_EXT: u8 = 100;
-const REFERENCE_EXT: u8 = 101;
+const ATOM_EXT: u8 = 100; // deprecated
+const REFERENCE_EXT: u8 = 101; // deprecated
 const PORT_EXT: u8 = 102;
 const PID_EXT: u8 = 103;
 const SMALL_TUPLE_EXT: u8 = 104;
@@ -80,11 +82,12 @@ const LARGE_BIG_EXT: u8 = 111;
 const NEW_FUN_EXT: u8 = 112;
 const EXPORT_EXT: u8 = 113;
 const NEW_REFERENCE_EXT: u8 = 114;
-const SMALL_ATOM_EXT: u8 = 115;
+const SMALL_ATOM_EXT: u8 = 115; // deprecated
 const MAP_EXT: u8 = 116;
 const FUN_EXT: u8 = 117;
 const ATOM_UTF8_EXT: u8 = 118;
 const SMALL_ATOM_UTF8_EXT: u8 = 119;
+const V4_PORT_EXT: u8 = 120;
 
 pub struct Decoder<R> {
     reader: R,
@@ -124,6 +127,8 @@ impl<R: io::Read> Decoder<R> {
             ATOM_EXT => self.decode_atom_ext(),
             REFERENCE_EXT => self.decode_reference_ext(),
             PORT_EXT => self.decode_port_ext(),
+            NEW_PORT_EXT => self.decode_new_port_ext(),
+            V4_PORT_EXT => self.decode_v4_port_ext(),
             PID_EXT => self.decode_pid_ext(),
             NEW_PID_EXT => self.decode_new_pid_ext(),
             SMALL_TUPLE_EXT => self.decode_small_tuple_ext(),
@@ -142,6 +147,7 @@ impl<R: io::Read> Decoder<R> {
             FUN_EXT => self.decode_fun_ext(),
             ATOM_UTF8_EXT => self.decode_atom_utf8_ext(),
             SMALL_ATOM_UTF8_EXT => self.decode_small_atom_utf8_ext(),
+            NEWER_REFERENCE_EXT => self.decode_newer_reference_ext(),
             _ => Err(DecodeError::UnknownTag { tag }),
         }
     }
@@ -248,8 +254,34 @@ impl<R: io::Read> Decoder<R> {
         })?;
         Ok(Term::from(Port {
             node,
-            id: self.reader.read_u32::<BigEndian>()?,
-            creation: self.reader.read_u8()?,
+            id: u64::from(self.reader.read_u32::<BigEndian>()?),
+            creation: u32::from(self.reader.read_u8()?),
+        }))
+    }
+    fn decode_new_port_ext(&mut self) -> DecodeResult {
+        let node: Atom = self.decode_term().and_then(|t| {
+            t.try_into().map_err(|t| DecodeError::UnexpectedType {
+                value: t,
+                expected: "Atom".to_string(),
+            })
+        })?;
+        Ok(Term::from(Port {
+            node,
+            id: u64::from(self.reader.read_u32::<BigEndian>()?),
+            creation: self.reader.read_u32::<BigEndian>()?,
+        }))
+    }
+    fn decode_v4_port_ext(&mut self) -> DecodeResult {
+        let node: Atom = self.decode_term().and_then(|t| {
+            t.try_into().map_err(|t| DecodeError::UnexpectedType {
+                value: t,
+                expected: "Atom".to_string(),
+            })
+        })?;
+        Ok(Term::from(Port {
+            node,
+            id: self.reader.read_u64::<BigEndian>()?,
+            creation: self.reader.read_u32::<BigEndian>()?,
         }))
     }
     fn decode_reference_ext(&mut self) -> DecodeResult {
@@ -257,13 +289,23 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Reference {
             node,
             id: vec![self.reader.read_u32::<BigEndian>()?],
-            creation: self.reader.read_u8()?,
+            creation: u32::from(self.reader.read_u8()?),
         }))
     }
     fn decode_new_reference_ext(&mut self) -> DecodeResult {
         let id_count = self.reader.read_u16::<BigEndian>()? as usize;
         let node = self.decode_term().and_then(aux::term_into_atom)?;
-        let creation = self.reader.read_u8()?;
+        let creation = u32::from(self.reader.read_u8()?);
+        let mut id = Vec::with_capacity(id_count);
+        for _ in 0..id_count {
+            id.push(self.reader.read_u32::<BigEndian>()?);
+        }
+        Ok(Term::from(Reference { node, id, creation }))
+    }
+    fn decode_newer_reference_ext(&mut self) -> DecodeResult {
+        let id_count = self.reader.read_u16::<BigEndian>()? as usize;
+        let node = self.decode_term().and_then(aux::term_into_atom)?;
+        let creation = self.reader.read_u32::<BigEndian>()?;
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
             id.push(self.reader.read_u32::<BigEndian>()?);
@@ -561,20 +603,27 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_port(&mut self, x: &Port) -> EncodeResult {
-        self.writer.write_u8(PORT_EXT)?;
-        self.encode_atom(&x.node)?;
-        self.writer.write_u32::<BigEndian>(x.id)?;
-        self.writer.write_u8(x.creation)?;
+        if (x.id >> 32) & 0xFFFFFFFF == 0 {
+            self.writer.write_u8(NEW_PORT_EXT)?;
+            self.encode_atom(&x.node)?;
+            self.writer.write_u32::<BigEndian>(x.id as u32)?;
+            self.writer.write_u32::<BigEndian>(x.creation)?;
+        } else {
+            self.writer.write_u8(V4_PORT_EXT)?;
+            self.encode_atom(&x.node)?;
+            self.writer.write_u64::<BigEndian>(x.id)?;
+            self.writer.write_u32::<BigEndian>(x.creation)?;
+        }
         Ok(())
     }
     fn encode_reference(&mut self, x: &Reference) -> EncodeResult {
-        self.writer.write_u8(NEW_REFERENCE_EXT)?;
+        self.writer.write_u8(NEWER_REFERENCE_EXT)?;
         if x.id.len() > std::u16::MAX as usize {
             return Err(EncodeError::TooLargeReferenceId(x.clone()));
         }
         self.writer.write_u16::<BigEndian>(x.id.len() as u16)?;
         self.encode_atom(&x.node)?;
-        self.writer.write_u8(x.creation)?;
+        self.writer.write_u32::<BigEndian>(x.creation)?;
         for n in &x.id {
             self.writer.write_u32::<BigEndian>(*n)?;
         }
