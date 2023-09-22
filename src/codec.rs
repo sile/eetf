@@ -202,13 +202,13 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_map_ext(&mut self) -> DecodeResult {
         let count = self.reader.read_u32::<BigEndian>()? as usize;
-        let mut entries = Vec::with_capacity(count);
+        let mut map = HashMap::<Term,Term>::new();
         for _ in 0..count {
             let k = self.decode_term()?;
             let v = self.decode_term()?;
-            entries.push((k, v));
+            map.insert(k, v);
         }
-        Ok(Term::from(Map::from(entries)))
+        Ok(Term::from(Map::from(map)))
     }
     fn decode_binary_ext(&mut self) -> DecodeResult {
         let size = self.reader.read_u32::<BigEndian>()? as usize;
@@ -525,8 +525,8 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_map(&mut self, x: &Map) -> EncodeResult {
         self.writer.write_u8(MAP_EXT)?;
-        self.writer.write_u32::<BigEndian>(x.entries.len() as u32)?;
-        for &(ref k, ref v) in &x.entries {
+        self.writer.write_u32::<BigEndian>(x.map.len() as u32)?;
+        for (k, v) in x.map.iter() {
             self.encode_term(k)?;
             self.encode_term(v)?;
         }

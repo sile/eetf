@@ -29,7 +29,9 @@
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
 use num::bigint::BigInt;
+use std::collections::HashMap;
 use std::fmt;
+use std::hash::Hash;
 use std::io;
 
 mod codec;
@@ -719,14 +721,14 @@ impl From<Vec<Term>> for Tuple {
 }
 
 /// Map.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Map {
-    pub entries: Vec<(Term, Term)>,
+    pub map: HashMap<Term, Term>,
 }
 impl fmt::Display for Map {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {  
         write!(f, "#{{")?;
-        for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
+        for (i, (k, v)) in self.map.iter().enumerate() {
             if i != 0 {
                 write!(f, ",")?;
             }
@@ -734,6 +736,24 @@ impl fmt::Display for Map {
         }
         write!(f, "}}")?;
         Ok(())
+    }
+}
+impl Hash for Map {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for (k, v) in self.map.iter() {
+            k.hash(state);
+            v.hash(state);
+        }
+    }
+}
+impl<const N: usize> From<[(Term,Term); N]> for Map{
+    fn from(from: [(Term,Term); N]) -> Self {
+        Map{ map : HashMap::from(from)  }
+    }
+}
+impl From<HashMap<Term,Term>> for Map{
+    fn from(from_map: HashMap<Term,Term>) -> Self {
+        Map{ map :from_map  }
     }
 }
 impl From<Vec<(Term, Term)>> for Map {
