@@ -38,6 +38,7 @@ impl_term_try_as_ref!(List);
 impl_term_try_as_ref!(ImproperList);
 impl_term_try_as_ref!(Tuple);
 impl_term_try_as_ref!(Map);
+impl_term_try_as_ref!(ByteList);
 
 macro_rules! impl_term_try_into {
     ($to:ident) => {
@@ -88,6 +89,7 @@ impl_term_try_into!(List);
 impl_term_try_into!(ImproperList);
 impl_term_try_into!(Tuple);
 impl_term_try_into!(Map);
+impl_term_try_into!(ByteList);
 
 pub trait AsOption {
     fn as_option(&self) -> Option<&Self>;
