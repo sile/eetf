@@ -50,9 +50,9 @@ pub enum Term {
     Float(Float),
     Pid(Pid),
     Port(Port),
-    Reference(Reference),
-    ExternalFun(ExternalFun),
-    InternalFun(InternalFun),
+    Reference(Box<Reference>),
+    ExternalFun(Box<ExternalFun>),
+    InternalFun(Box<InternalFun>),
     Binary(Binary),
     BitBinary(BitBinary),
     List(List),
@@ -131,17 +131,17 @@ impl From<Port> for Term {
 }
 impl From<Reference> for Term {
     fn from(x: Reference) -> Self {
-        Term::Reference(x)
+        Term::Reference(Box::new(x))
     }
 }
 impl From<ExternalFun> for Term {
     fn from(x: ExternalFun) -> Self {
-        Term::ExternalFun(x)
+        Term::ExternalFun(Box::new(x))
     }
 }
 impl From<InternalFun> for Term {
     fn from(x: InternalFun) -> Self {
-        Term::InternalFun(x)
+        Term::InternalFun(Box::new(x))
     }
 }
 impl From<Binary> for Term {
