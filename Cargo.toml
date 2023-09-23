@@ -18,5 +18,5 @@ coveralls = {repository = "sile/eetf"}
 num = "0.4"
 byteorder = "1"
 libflate = "2"
-ordered-float = "2"
+ordered-float = "3"
 thiserror = "1"
