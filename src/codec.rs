@@ -579,7 +579,7 @@ impl<W: io::Write> Encoder<W> {
             self.writer.write_u8(x.value as u8)?;
         } else {
             self.writer.write_u8(INTEGER_EXT)?;
-            self.writer.write_i32::<BigEndian>(x.value as i32)?;
+            self.writer.write_i32::<BigEndian>(x.value)?;
         }
         Ok(())
     }
