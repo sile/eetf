@@ -29,7 +29,9 @@
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
 use num::bigint::BigInt;
+use std::collections::HashMap;
 use std::fmt;
+use std::hash::Hash;
 use std::io;
 
 mod codec;
@@ -50,11 +52,12 @@ pub enum Term {
     Float(Float),
     Pid(Pid),
     Port(Port),
-    Reference(Reference),
-    ExternalFun(ExternalFun),
-    InternalFun(InternalFun),
+    Reference(Box<Reference>),
+    ExternalFun(Box<ExternalFun>),
+    InternalFun(Box<InternalFun>),
     Binary(Binary),
     BitBinary(BitBinary),
+    ByteList(ByteList),
     List(List),
     ImproperList(ImproperList),
     Tuple(Tuple),
@@ -92,6 +95,7 @@ impl fmt::Display for Term {
             Term::InternalFun(ref x) => x.fmt(f),
             Term::Binary(ref x) => x.fmt(f),
             Term::BitBinary(ref x) => x.fmt(f),
+            Term::ByteList(ref x) => x.fmt(f),
             Term::List(ref x) => x.fmt(f),
             Term::ImproperList(ref x) => x.fmt(f),
             Term::Tuple(ref x) => x.fmt(f),
@@ -131,17 +135,17 @@ impl From<Port> for Term {
 }
 impl From<Reference> for Term {
     fn from(x: Reference) -> Self {
-        Term::Reference(x)
+        Term::Reference(Box::new(x))
     }
 }
 impl From<ExternalFun> for Term {
     fn from(x: ExternalFun) -> Self {
-        Term::ExternalFun(x)
+        Term::ExternalFun(Box::new(x))
     }
 }
 impl From<InternalFun> for Term {
     fn from(x: InternalFun) -> Self {
-        Term::InternalFun(x)
+        Term::InternalFun(Box::new(x))
     }
 }
 impl From<Binary> for Term {
@@ -152,6 +156,16 @@ impl From<Binary> for Term {
 impl From<BitBinary> for Term {
     fn from(x: BitBinary) -> Self {
         Term::BitBinary(x)
+    }
+}
+impl From<ByteList> for Term {
+    fn from(x: ByteList) -> Self {
+        Term::ByteList(x)
+    }
+}
+impl From<String> for Term {
+    fn from(x: String) -> Self {
+        Term::ByteList(ByteList { bytes: x.into_bytes() })
     }
 }
 impl From<List> for Term {
@@ -621,6 +635,55 @@ impl From<(Vec<u8>, u8)> for BitBinary {
     }
 }
 
+
+/// Erlang has a transport optimization for lists only containing u8 elements. \
+/// Since Strings in erlang are just lists with u8's they call this "STRING_EXT". 
+/// 
+/// This type does not exist in erlang and is to be seen as a subtype of List.
+/// 
+/// See: https://erlang.org/doc/apps/erts/erl_ext_dist.html#STRING_EXT
+/// 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct ByteList {
+    pub bytes: Vec<u8>,
+}
+impl fmt::Display for ByteList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        for (i, b) in self.bytes.iter().enumerate() {
+            if i != 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", b)?;
+        }
+        write!(f, "]")?;
+        Ok(())
+    }
+}
+impl From<String> for ByteList {
+    fn from(string: String) -> Self {
+        ByteList { bytes : string.into_bytes()}
+    }
+}
+impl From<&str> for ByteList {
+    fn from(string: &str) -> Self {
+        ByteList { bytes :string.into() } 
+    }
+}
+impl From<Vec<u8>> for ByteList {
+    fn from(bytes: Vec<u8>) -> Self {
+        ByteList { bytes }
+    }
+}
+impl<const N: usize> From<&[u8;N]> for ByteList {
+    fn from(bytes: &[u8;N]) -> Self {
+        ByteList {
+            bytes: Vec::from(bytes.as_slice()),
+        }
+    }
+}
+
+
 /// List.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct List {
@@ -654,6 +717,12 @@ impl fmt::Display for List {
 }
 impl From<Vec<Term>> for List {
     fn from(elements: Vec<Term>) -> Self {
+        List { elements }
+    }
+}
+impl From<ByteList> for List {
+    fn from(byte_list: ByteList) -> Self {
+        let elements = byte_list.bytes.into_iter().map(|value|Term::FixInteger(FixInteger { value: value as i32 })).collect();
         List { elements }
     }
 }
@@ -719,14 +788,14 @@ impl From<Vec<Term>> for Tuple {
 }
 
 /// Map.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Map {
-    pub entries: Vec<(Term, Term)>,
+    pub map: HashMap<Term, Term>,
 }
 impl fmt::Display for Map {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {  
         write!(f, "#{{")?;
-        for (i, &(ref k, ref v)) in self.entries.iter().enumerate() {
+        for (i, (k, v)) in self.map.iter().enumerate() {
             if i != 0 {
                 write!(f, ",")?;
             }
@@ -736,9 +805,31 @@ impl fmt::Display for Map {
         Ok(())
     }
 }
-impl From<Vec<(Term, Term)>> for Map {
-    fn from(entries: Vec<(Term, Term)>) -> Self {
-        Map { entries }
+impl Hash for Map {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for (k, v) in self.map.iter() {
+            k.hash(state);
+            v.hash(state);
+        }
+    }
+}
+impl<const N: usize> From<[(Term,Term); N]> for Map{
+    fn from(from: [(Term,Term); N]) -> Self {
+        Map{ map : HashMap::from(from)  }
+    }
+}
+impl From<HashMap<Term,Term>> for Map{
+    fn from(from_map: HashMap<Term,Term>) -> Self {
+        Map{ map :from_map  }
+    }
+}
+impl From<HashMap<String,Term>> for Map{
+    fn from(from_map: HashMap<String,Term>) -> Self {
+        let mut result_map = HashMap::<Term,Term>::new();
+        for (k,v) in from_map {
+            result_map.insert(Term::from(k),v);
+        }
+        Map{ map : result_map  }
     }
 }
 
