@@ -327,50 +327,31 @@ fn bit_binary_test() {
     );
 }
 
-
-
 #[test]
-fn byte_list_test(){
-
+fn byte_list_test() {
     // Display
-    assert_eq!(
-        ByteList::from(vec![1,2])
-        .to_string(),
-        "[1,2]",
-    );
-    
+    assert_eq!(ByteList::from(vec![1, 2]).to_string(), "[1,2]",);
+
     // 01 - Simple byte list
 
-    let byte_list = ByteList::from(&[1,2]);
+    let byte_list = ByteList::from(&[1, 2]);
     let bytes = vec![131, 107, 0, 2, 1, 2];
 
     // Decode
-    assert_eq!(
-        decode(bytes.as_slice()).try_into(),
-        Ok(byte_list.clone())
-    ); 
+    assert_eq!(decode(bytes.as_slice()).try_into(), Ok(byte_list.clone()));
 
     // Encode
-    assert_eq!(
-        encode(Term::from(byte_list)),
-        bytes.as_slice(),
-    );
+    assert_eq!(encode(Term::from(byte_list)), bytes.as_slice(),);
 
     // 02 - Byte List from String
     let byte_list = ByteList::from("test");
-    let bytes = vec![131,107,0,4,116,101,115,116];
+    let bytes = vec![131, 107, 0, 4, 116, 101, 115, 116];
 
     // Decode
-    assert_eq!(
-        decode(bytes.as_slice()).try_into(),
-        Ok(byte_list.clone())
-    ); 
+    assert_eq!(decode(bytes.as_slice()).try_into(), Ok(byte_list.clone()));
 
     // Encode
-    assert_eq!(
-        encode(Term::from(byte_list)),
-        bytes.as_slice(),
-    );
+    assert_eq!(encode(Term::from(byte_list)), bytes.as_slice(),);
 }
 
 #[test]
@@ -473,12 +454,11 @@ fn map_test() {
             Term::from(FixInteger::from(2)),
         ),
     ]);
-    
 
     // Display
     let as_str = map.to_string();
     // Hashmap Iter is not deterministic, so we need to check both possible outputs
-    assert!("#{'a'=>'b',1=>2}" == as_str || "#{1=>2,'a'=>'b'}"== as_str) ;
+    assert!("#{'a'=>'b',1=>2}" == as_str || "#{1=>2,'a'=>'b'}" == as_str);
     assert_eq!("#{}", Map::from([]).to_string());
 
     // Decode
@@ -491,14 +471,20 @@ fn map_test() {
     let buf = encode(Term::from(map.clone()));
     // Hashmap Iter is not deterministic, so we need to check both possible outputs
     assert!(
-        [131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98] == buf.as_slice() || [131, 116, 0, 0, 0, 2, 100, 0, 1, 97, 100, 0, 1, 98, 97, 1, 97, 2] == buf.as_slice()
+        [131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98] == buf.as_slice()
+            || [131, 116, 0, 0, 0, 2, 100, 0, 1, 97, 100, 0, 1, 98, 97, 1, 97, 2] == buf.as_slice()
     );
-
 
     //Access
 
-    assert_eq!(map.map.get(&Term::from(Atom::from("a"))), Some(&Term::from(Atom::from("b"))));
-    assert_eq!(map.map.get(&Term::from(FixInteger::from(1))), Some(&Term::from(FixInteger::from(2))));
+    assert_eq!(
+        map.map.get(&Term::from(Atom::from("a"))),
+        Some(&Term::from(Atom::from("b")))
+    );
+    assert_eq!(
+        map.map.get(&Term::from(FixInteger::from(1))),
+        Some(&Term::from(FixInteger::from(2)))
+    );
 }
 
 #[test]

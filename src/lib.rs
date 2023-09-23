@@ -165,7 +165,9 @@ impl From<ByteList> for Term {
 }
 impl From<String> for Term {
     fn from(x: String) -> Self {
-        Term::ByteList(ByteList { bytes: x.into_bytes() })
+        Term::ByteList(ByteList {
+            bytes: x.into_bytes(),
+        })
     }
 }
 impl From<List> for Term {
@@ -635,14 +637,13 @@ impl From<(Vec<u8>, u8)> for BitBinary {
     }
 }
 
-
 /// Erlang has a transport optimization for lists only containing u8 elements. \
-/// Since Strings in erlang are just lists with u8's they call this "STRING_EXT". 
-/// 
+/// Since Strings in erlang are just lists with u8's they call this "STRING_EXT".
+///
 /// This type does not exist in erlang and is to be seen as a subtype of List.
-/// 
+///
 /// See: https://erlang.org/doc/apps/erts/erl_ext_dist.html#STRING_EXT
-/// 
+///
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ByteList {
     pub bytes: Vec<u8>,
@@ -662,12 +663,16 @@ impl fmt::Display for ByteList {
 }
 impl From<String> for ByteList {
     fn from(string: String) -> Self {
-        ByteList { bytes : string.into_bytes()}
+        ByteList {
+            bytes: string.into_bytes(),
+        }
     }
 }
 impl From<&str> for ByteList {
     fn from(string: &str) -> Self {
-        ByteList { bytes :string.into() } 
+        ByteList {
+            bytes: string.into(),
+        }
     }
 }
 impl From<Vec<u8>> for ByteList {
@@ -675,14 +680,13 @@ impl From<Vec<u8>> for ByteList {
         ByteList { bytes }
     }
 }
-impl<const N: usize> From<&[u8;N]> for ByteList {
-    fn from(bytes: &[u8;N]) -> Self {
+impl<const N: usize> From<&[u8; N]> for ByteList {
+    fn from(bytes: &[u8; N]) -> Self {
         ByteList {
             bytes: Vec::from(bytes.as_slice()),
         }
     }
 }
-
 
 /// List.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -722,7 +726,15 @@ impl From<Vec<Term>> for List {
 }
 impl From<ByteList> for List {
     fn from(byte_list: ByteList) -> Self {
-        let elements = byte_list.bytes.into_iter().map(|value|Term::FixInteger(FixInteger { value: value as i32 })).collect();
+        let elements = byte_list
+            .bytes
+            .into_iter()
+            .map(|value| {
+                Term::FixInteger(FixInteger {
+                    value: value as i32,
+                })
+            })
+            .collect();
         List { elements }
     }
 }
@@ -793,7 +805,7 @@ pub struct Map {
     pub map: HashMap<Term, Term>,
 }
 impl fmt::Display for Map {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {  
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "#{{")?;
         for (i, (k, v)) in self.map.iter().enumerate() {
             if i != 0 {
@@ -813,23 +825,25 @@ impl Hash for Map {
         }
     }
 }
-impl<const N: usize> From<[(Term,Term); N]> for Map{
-    fn from(from: [(Term,Term); N]) -> Self {
-        Map{ map : HashMap::from(from)  }
-    }
-}
-impl From<HashMap<Term,Term>> for Map{
-    fn from(from_map: HashMap<Term,Term>) -> Self {
-        Map{ map :from_map  }
-    }
-}
-impl From<HashMap<String,Term>> for Map{
-    fn from(from_map: HashMap<String,Term>) -> Self {
-        let mut result_map = HashMap::<Term,Term>::new();
-        for (k,v) in from_map {
-            result_map.insert(Term::from(k),v);
+impl<const N: usize> From<[(Term, Term); N]> for Map {
+    fn from(from: [(Term, Term); N]) -> Self {
+        Map {
+            map: HashMap::from(from),
         }
-        Map{ map : result_map  }
+    }
+}
+impl From<HashMap<Term, Term>> for Map {
+    fn from(from_map: HashMap<Term, Term>) -> Self {
+        Map { map: from_map }
+    }
+}
+impl From<HashMap<String, Term>> for Map {
+    fn from(from_map: HashMap<String, Term>) -> Self {
+        let mut result_map = HashMap::<Term, Term>::new();
+        for (k, v) in from_map {
+            result_map.insert(Term::from(k), v);
+        }
+        Map { map: result_map }
     }
 }
 

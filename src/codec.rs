@@ -162,10 +162,10 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(List::nil()))
     }
     fn decode_string_ext(&mut self) -> DecodeResult {
-            let size = self.reader.read_u16::<BigEndian>()? as usize;
-            let mut bytes = vec![0; size];
-            self.reader.read_exact(&mut bytes)?;
-            Ok(Term::from(ByteList::from(bytes)))            
+        let size = self.reader.read_u16::<BigEndian>()? as usize;
+        let mut bytes = vec![0; size];
+        self.reader.read_exact(&mut bytes)?;
+        Ok(Term::from(ByteList::from(bytes)))
     }
     fn decode_list_ext(&mut self) -> DecodeResult {
         let count = self.reader.read_u32::<BigEndian>()? as usize;
@@ -198,7 +198,7 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_map_ext(&mut self) -> DecodeResult {
         let count = self.reader.read_u32::<BigEndian>()? as usize;
-        let mut map = HashMap::<Term,Term>::new();
+        let mut map = HashMap::<Term, Term>::new();
         for _ in 0..count {
             let k = self.decode_term()?;
             let v = self.decode_term()?;
@@ -461,7 +461,7 @@ impl<W: io::Write> Encoder<W> {
             Term::ImproperList(ref x) => self.encode_improper_list(x),
             Term::Tuple(ref x) => self.encode_tuple(x),
             Term::Map(ref x) => self.encode_map(x),
-            Term::ByteList(ref x) => self.encode_byte_list(x.bytes.as_slice())
+            Term::ByteList(ref x) => self.encode_byte_list(x.bytes.as_slice()),
         }
     }
     fn encode_nil(&mut self) -> EncodeResult {
@@ -529,11 +529,11 @@ impl<W: io::Write> Encoder<W> {
         }
         Ok(())
     }
-    fn encode_byte_list(&mut self, x: &[u8]) -> EncodeResult{
+    fn encode_byte_list(&mut self, x: &[u8]) -> EncodeResult {
         self.writer.write_u8(STRING_EXT)?;
         self.writer.write_u16::<BigEndian>(x.len() as u16)?;
         self.writer.write_all(x)?;
-        
+
         Ok(())
     }
     fn encode_binary(&mut self, x: &Binary) -> EncodeResult {
