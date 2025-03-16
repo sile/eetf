@@ -354,7 +354,7 @@ impl From<&FixInteger> for BigInteger {
 }
 
 /// Floating point number
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Float {
     /// The value of the number
     pub value: f64,
@@ -388,15 +388,17 @@ impl TryFrom<f64> for Float {
         }
     }
 }
-impl PartialEq for Float {
-    fn eq(&self, other: &Self) -> bool {
-        ordered_float::OrderedFloat(self.value) == ordered_float::OrderedFloat(other.value)
-    }
-}
 impl Eq for Float {}
 impl std::hash::Hash for Float {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        ordered_float::OrderedFloat(self.value).hash(state);
+        if self.value.is_nan() {
+            f64::NAN.to_bits().hash(state);
+        } else if self.value == 0.0 {
+            // Positive or negative zero
+            0.0f64.to_bits().hash(state);
+        } else {
+            self.value.to_bits().hash(state);
+        }
     }
 }
 
