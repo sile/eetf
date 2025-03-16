@@ -11,9 +11,6 @@ keywords = ["erlang"]
 license = "MIT"
 edition = "2021"
 
-[badges]
-coveralls = {repository = "sile/eetf"}
-
 [dependencies]
 num = "0.4"
 byteorder = "1"
