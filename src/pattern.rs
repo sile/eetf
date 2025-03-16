@@ -3,9 +3,9 @@
 use super::*;
 use crate::convert::AsOption;
 use crate::convert::TryAsRef;
-use num::bigint::ToBigInt;
-use num::bigint::ToBigUint;
-use num::traits::ToPrimitive;
+use num_bigint::ToBigInt;
+use num_bigint::ToBigUint;
+use num_traits::ToPrimitive;
 use std::fmt::Debug;
 
 pub type Result<'a, T> = std::result::Result<T, Unmatch<'a>>;
@@ -838,7 +838,7 @@ impl<'a> Pattern<'a> for I64 {
 #[derive(Debug, Clone)]
 pub struct Int;
 impl<'a> Pattern<'a> for Int {
-    type Output = num::BigInt;
+    type Output = num_bigint::BigInt;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
         input.to_bigint().ok_or_else(|| self.unmatched(input))
     }
@@ -847,7 +847,7 @@ impl<'a> Pattern<'a> for Int {
 #[derive(Debug, Clone)]
 pub struct Uint;
 impl<'a> Pattern<'a> for Uint {
-    type Output = num::BigUint;
+    type Output = num_bigint::BigUint;
     fn try_match(&self, input: &'a Term) -> Result<'a, Self::Output> {
         input.to_biguint().ok_or_else(|| self.unmatched(input))
     }

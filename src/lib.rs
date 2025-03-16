@@ -28,7 +28,7 @@
 //!
 //! - [Erlang External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html)
 //!
-use num::bigint::BigInt;
+use num_bigint::BigInt;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
@@ -557,7 +557,7 @@ impl fmt::Display for InternalFun {
                 uniq,
                 ..
             } => {
-                use num::bigint::Sign;
+                use num_bigint::Sign;
                 let uniq = BigInt::from_bytes_be(Sign::Plus, &uniq);
                 write!(f, "#Fun<{}.{}.{}>", module, index, uniq)
             }
