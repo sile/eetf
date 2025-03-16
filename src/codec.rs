@@ -474,7 +474,7 @@ impl<W: io::Write> Encoder<W> {
                 .and_then(|&FixInteger { value: i }| if i < 0x100 { Some(i as u8) } else { None })
         };
         if !x.elements.is_empty()
-            && x.elements.len() <= std::u16::MAX as usize
+            && x.elements.len() <= u16::MAX as usize
             && x.elements.iter().all(|e| to_byte(e).is_some())
         {
             self.writer.write_u8(STRING_EXT)?;
@@ -574,7 +574,7 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_fix_integer(&mut self, x: &FixInteger) -> EncodeResult {
-        if 0 <= x.value && x.value <= i32::from(std::u8::MAX) {
+        if 0 <= x.value && x.value <= i32::from(u8::MAX) {
             self.writer.write_u8(SMALL_INTEGER_EXT)?;
             self.writer.write_u8(x.value as u8)?;
         } else {
@@ -585,10 +585,10 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_big_integer(&mut self, x: &BigInteger) -> EncodeResult {
         let (sign, bytes) = x.value.to_bytes_le();
-        if bytes.len() <= std::u8::MAX as usize {
+        if bytes.len() <= u8::MAX as usize {
             self.writer.write_u8(SMALL_BIG_EXT)?;
             self.writer.write_u8(bytes.len() as u8)?;
-        } else if bytes.len() <= std::u32::MAX as usize {
+        } else if bytes.len() <= u32::MAX as usize {
             self.writer.write_u8(LARGE_BIG_EXT)?;
             self.writer.write_u32::<BigEndian>(bytes.len() as u32)?;
         } else {
@@ -622,7 +622,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_reference(&mut self, x: &Reference) -> EncodeResult {
         self.writer.write_u8(NEWER_REFERENCE_EXT)?;
-        if x.id.len() > std::u16::MAX as usize {
+        if x.id.len() > u16::MAX as usize {
             return Err(EncodeError::TooLargeReferenceId(x.clone()));
         }
         self.writer.write_u16::<BigEndian>(x.id.len() as u16)?;

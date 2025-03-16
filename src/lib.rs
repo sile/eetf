@@ -74,7 +74,7 @@ impl Term {
         codec::Encoder::new(writer).encode(self)
     }
 
-    pub fn as_match<'a, P>(&'a self, pattern: P) -> pattern::Result<P::Output>
+    pub fn as_match<'a, P>(&'a self, pattern: P) -> pattern::Result<'a, P::Output>
     where
         P: pattern::Pattern<'a>,
     {
@@ -345,7 +345,7 @@ impl From<usize> for BigInteger {
         }
     }
 }
-impl<'a> From<&'a FixInteger> for BigInteger {
+impl From<&FixInteger> for BigInteger {
     fn from(i: &FixInteger) -> Self {
         BigInteger {
             value: BigInt::from(i.value),
