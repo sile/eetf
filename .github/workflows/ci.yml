@@ -37,5 +37,5 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
       - run: rustup update ${{ matrix.toolchain }}
-      - run: cargo fmt --all-features -- --check
+      - run: cargo fmt -- --check
       - run: cargo clippy --all-features -- -D warnings
