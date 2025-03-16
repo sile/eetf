@@ -104,7 +104,7 @@ impl AsOption for bool {
     }
 }
 
-impl num::traits::ToPrimitive for FixInteger {
+impl num_traits::ToPrimitive for FixInteger {
     fn to_i64(&self) -> Option<i64> {
         Some(i64::from(self.value))
     }
@@ -115,7 +115,7 @@ impl num::traits::ToPrimitive for FixInteger {
         Some(f64::from(self.value))
     }
 }
-impl num::traits::ToPrimitive for BigInteger {
+impl num_traits::ToPrimitive for BigInteger {
     fn to_i64(&self) -> Option<i64> {
         self.value.to_i64()
     }
@@ -126,7 +126,7 @@ impl num::traits::ToPrimitive for BigInteger {
         self.value.to_f64()
     }
 }
-impl num::traits::ToPrimitive for Float {
+impl num_traits::ToPrimitive for Float {
     fn to_i64(&self) -> Option<i64> {
         None
     }
@@ -137,7 +137,7 @@ impl num::traits::ToPrimitive for Float {
         Some(self.value)
     }
 }
-impl num::traits::ToPrimitive for Term {
+impl num_traits::ToPrimitive for Term {
     fn to_i64(&self) -> Option<i64> {
         match *self {
             Term::FixInteger(ref x) => x.to_i64(),
@@ -162,18 +162,18 @@ impl num::traits::ToPrimitive for Term {
     }
 }
 
-impl num::bigint::ToBigInt for FixInteger {
-    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+impl num_bigint::ToBigInt for FixInteger {
+    fn to_bigint(&self) -> Option<num_bigint::BigInt> {
         Some(BigInteger::from(self).value)
     }
 }
-impl num::bigint::ToBigInt for BigInteger {
-    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+impl num_bigint::ToBigInt for BigInteger {
+    fn to_bigint(&self) -> Option<num_bigint::BigInt> {
         Some(self.value.clone())
     }
 }
-impl num::bigint::ToBigInt for Term {
-    fn to_bigint(&self) -> Option<num::bigint::BigInt> {
+impl num_bigint::ToBigInt for Term {
+    fn to_bigint(&self) -> Option<num_bigint::BigInt> {
         match *self {
             Term::FixInteger(ref x) => x.to_bigint(),
             Term::BigInteger(ref x) => x.to_bigint(),
@@ -182,18 +182,18 @@ impl num::bigint::ToBigInt for Term {
     }
 }
 
-impl num::bigint::ToBigUint for FixInteger {
-    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+impl num_bigint::ToBigUint for FixInteger {
+    fn to_biguint(&self) -> Option<num_bigint::BigUint> {
         BigInteger::from(self).value.to_biguint()
     }
 }
-impl num::bigint::ToBigUint for BigInteger {
-    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+impl num_bigint::ToBigUint for BigInteger {
+    fn to_biguint(&self) -> Option<num_bigint::BigUint> {
         self.value.to_biguint()
     }
 }
-impl num::bigint::ToBigUint for Term {
-    fn to_biguint(&self) -> Option<num::bigint::BigUint> {
+impl num_bigint::ToBigUint for Term {
+    fn to_biguint(&self) -> Option<num_bigint::BigUint> {
         match *self {
             Term::FixInteger(ref x) => x.to_biguint(),
             Term::BigInteger(ref x) => x.to_biguint(),

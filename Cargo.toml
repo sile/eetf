@@ -12,6 +12,7 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-num = "0.4"
 byteorder = "1"
 libflate = "2"
+num-bigint = "0.4"
+num-traits = "0.2.19"

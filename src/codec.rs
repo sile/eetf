@@ -4,7 +4,7 @@ use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use libflate::zlib;
-use num::bigint::BigInt;
+use num_bigint::BigInt;
 use std::convert::From;
 use std::io;
 use std::io::Write;
@@ -767,7 +767,7 @@ impl<W: io::Write> Encoder<W> {
 }
 
 mod aux {
-    use num::bigint::Sign;
+    use num_bigint::Sign;
     use std::io;
     use std::ops::Range;
     use std::str;
