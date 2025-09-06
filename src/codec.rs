@@ -624,16 +624,14 @@ impl<W: io::Write> Encoder<W> {
         Ok(())
     }
     fn encode_atom(&mut self, x: &Atom) -> EncodeResult {
-        if x.name.len() > 0xFFFF {
-            return Err(EncodeError::TooLongAtomName(x.clone()));
-        }
-
         if let Ok(len) = u8::try_from(x.name.len()) {
             self.writer.write_u8(SMALL_ATOM_UTF8_EXT)?;
             self.writer.write_u8(len)?;
-        } else {
+        } else if let Ok(len) = u16::try_from(x.name.len()) {
             self.writer.write_u8(ATOM_UTF8_EXT)?;
-            self.writer.write_u16(x.name.len() as u16)?;
+            self.writer.write_u16(len)?;
+        } else {
+            return Err(EncodeError::TooLongAtomName(x.clone()));
         }
         self.writer.write_all(x.name.as_bytes())?;
         Ok(())
