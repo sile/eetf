@@ -826,10 +826,6 @@ mod aux {
         }
     }
     pub fn sign_to_byte(sign: Sign) -> u8 {
-        if sign == Sign::Minus {
-            1
-        } else {
-            0
-        }
+        if sign == Sign::Minus { 1 } else { 0 }
     }
 }

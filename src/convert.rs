@@ -96,11 +96,7 @@ pub trait AsOption {
 }
 impl AsOption for bool {
     fn as_option(&self) -> Option<&Self> {
-        if *self {
-            Some(self)
-        } else {
-            None
-        }
+        if *self { Some(self) } else { None }
     }
 }
 
