@@ -778,31 +778,66 @@ impl<R: io::Read> ReadExt for R {
     fn read_u16(&mut self) -> io::Result<u16> {
         let mut buf = [0; 2];
         self.read_exact(&mut buf)?;
-        Ok(u16::from_bytes_be(buf))
+        Ok(u16::from_be_bytes(buf))
     }
 
     fn read_i32(&mut self) -> io::Result<i32> {
         let mut buf = [0; 4];
         self.read_exact(&mut buf)?;
-        Ok(i32::from_bytes_be(buf))
+        Ok(i32::from_be_bytes(buf))
     }
 
     fn read_u32(&mut self) -> io::Result<u32> {
         let mut buf = [0; 4];
         self.read_exact(&mut buf)?;
-        Ok(u32::from_bytes_be(buf))
+        Ok(u32::from_be_bytes(buf))
     }
 
     fn read_u64(&mut self) -> io::Result<u64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf)?;
-        Ok(u64::from_bytes_be(buf))
+        Ok(u64::from_be_bytes(buf))
     }
 
     fn read_f64(&mut self) -> io::Result<f64> {
         let mut buf = [0; 8];
         self.read_exact(&mut buf)?;
-        Ok(f64::from_bytes_be(buf))
+        Ok(f64::from_be_bytes(buf))
+    }
+}
+
+trait WriteExt {
+    fn write_u8(&mut self, value: u8) -> io::Result<()>;
+    fn write_u16(&mut self, value: u16) -> io::Result<()>;
+    fn write_i32(&mut self, value: i32) -> io::Result<()>;
+    fn write_u32(&mut self, value: u32) -> io::Result<()>;
+    fn write_u64(&mut self, value: u64) -> io::Result<()>;
+    fn write_f64(&mut self, value: f64) -> io::Result<()>;
+}
+
+impl<W: io::Write> WriteExt for W {
+    fn write_u8(&mut self, value: u8) -> io::Result<()> {
+        self.write_all(&[value])
+    }
+
+    fn write_u16(&mut self, value: u16) -> io::Result<()> {
+        self.write_all(&value.to_be_bytes())
+    }
+
+    fn write_i32(&mut self, value: i32) -> io::Result<()> {
+        self.write_all(&value.to_be_bytes())
+    }
+
+    fn write_u32(&mut self, value: u32) -> io::Result<()> {
+        self.write_all(&value.to_be_bytes())
+    }
+
+    fn write_u64(&mut self, value: u64) -> io::Result<()> {
+        self.write_all(&value.to_be_bytes())
+    }
+
+    fn write_f64(&mut self, value: f64) -> io::Result<()> {
+        self.write_all(&value.to_be_bytes())
     }
 }
 
