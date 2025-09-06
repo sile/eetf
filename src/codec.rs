@@ -1,8 +1,5 @@
 use super::*;
 use crate::convert::TryAsRef;
-use byteorder::BigEndian;
-use byteorder::ReadBytesExt;
-use byteorder::WriteBytesExt;
 use libflate::zlib;
 use num_bigint::BigInt;
 use std::convert::From;
@@ -224,7 +221,7 @@ impl<R: io::Read> Decoder<R> {
         }
     }
     fn decode_compressed_term(&mut self) -> DecodeResult {
-        let _uncompressed_size = self.reader.read_u32::<BigEndian>()? as usize;
+        let _uncompressed_size = self.reader.read_u32()? as usize;
         let zlib_decoder = zlib::Decoder::new(&mut self.reader)?;
         let mut decoder = Decoder::new(zlib_decoder);
         decoder.decode_term()
@@ -234,13 +231,13 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(List::nil()))
     }
     fn decode_string_ext(&mut self) -> DecodeResult {
-        let size = self.reader.read_u16::<BigEndian>()? as usize;
+        let size = self.reader.read_u16()? as usize;
         let mut bytes = vec![0; size];
         self.reader.read_exact(&mut bytes)?;
         Ok(Term::from(ByteList::from(bytes)))
     }
     fn decode_list_ext(&mut self) -> DecodeResult {
-        let count = self.reader.read_u32::<BigEndian>()? as usize;
+        let count = self.reader.read_u32()? as usize;
         let mut elements = Vec::with_capacity(count);
         for _ in 0..count {
             elements.push(self.decode_term()?);
@@ -261,7 +258,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Tuple::from(elements)))
     }
     fn decode_large_tuple_ext(&mut self) -> DecodeResult {
-        let count = self.reader.read_u32::<BigEndian>()? as usize;
+        let count = self.reader.read_u32()? as usize;
         let mut elements = Vec::with_capacity(count);
         for _ in 0..count {
             elements.push(self.decode_term()?);
@@ -269,7 +266,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Tuple::from(elements)))
     }
     fn decode_map_ext(&mut self) -> DecodeResult {
-        let count = self.reader.read_u32::<BigEndian>()? as usize;
+        let count = self.reader.read_u32()? as usize;
         let mut map = HashMap::<Term, Term>::new();
         for _ in 0..count {
             let k = self.decode_term()?;
@@ -279,13 +276,13 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Map::from(map)))
     }
     fn decode_binary_ext(&mut self) -> DecodeResult {
-        let size = self.reader.read_u32::<BigEndian>()? as usize;
+        let size = self.reader.read_u32()? as usize;
         let mut buf = vec![0; size];
         self.reader.read_exact(&mut buf)?;
         Ok(Term::from(Binary::from(buf)))
     }
     fn decode_bit_binary_ext(&mut self) -> DecodeResult {
-        let size = self.reader.read_u32::<BigEndian>()? as usize;
+        let size = self.reader.read_u32()? as usize;
         let tail_bits_size = self.reader.read_u8()?;
         let mut buf = vec![0; size];
         self.reader.read_exact(&mut buf)?;
@@ -299,8 +296,8 @@ impl<R: io::Read> Decoder<R> {
         let node = self.decode_term().and_then(aux::term_into_atom)?;
         Ok(Term::from(Pid {
             node,
-            id: self.reader.read_u32::<BigEndian>()?,
-            serial: self.reader.read_u32::<BigEndian>()?,
+            id: self.reader.read_u32()?,
+            serial: self.reader.read_u32()?,
             creation: self.reader.read_u8()? as u32,
         }))
     }
@@ -308,9 +305,9 @@ impl<R: io::Read> Decoder<R> {
         let node = self.decode_term().and_then(aux::term_into_atom)?;
         Ok(Term::from(Pid {
             node,
-            id: self.reader.read_u32::<BigEndian>()?,
-            serial: self.reader.read_u32::<BigEndian>()?,
-            creation: self.reader.read_u32::<BigEndian>()?,
+            id: self.reader.read_u32()?,
+            serial: self.reader.read_u32()?,
+            creation: self.reader.read_u32()?,
         }))
     }
     fn decode_port_ext(&mut self) -> DecodeResult {
@@ -322,7 +319,7 @@ impl<R: io::Read> Decoder<R> {
         })?;
         Ok(Term::from(Port {
             node,
-            id: u64::from(self.reader.read_u32::<BigEndian>()?),
+            id: u64::from(self.reader.read_u32()?),
             creation: u32::from(self.reader.read_u8()?),
         }))
     }
@@ -335,8 +332,8 @@ impl<R: io::Read> Decoder<R> {
         })?;
         Ok(Term::from(Port {
             node,
-            id: u64::from(self.reader.read_u32::<BigEndian>()?),
-            creation: self.reader.read_u32::<BigEndian>()?,
+            id: u64::from(self.reader.read_u32()?),
+            creation: self.reader.read_u32()?,
         }))
     }
     fn decode_v4_port_ext(&mut self) -> DecodeResult {
@@ -348,35 +345,35 @@ impl<R: io::Read> Decoder<R> {
         })?;
         Ok(Term::from(Port {
             node,
-            id: self.reader.read_u64::<BigEndian>()?,
-            creation: self.reader.read_u32::<BigEndian>()?,
+            id: self.reader.read_u64()?,
+            creation: self.reader.read_u32()?,
         }))
     }
     fn decode_reference_ext(&mut self) -> DecodeResult {
         let node = self.decode_term().and_then(aux::term_into_atom)?;
         Ok(Term::from(Reference {
             node,
-            id: vec![self.reader.read_u32::<BigEndian>()?],
+            id: vec![self.reader.read_u32()?],
             creation: u32::from(self.reader.read_u8()?),
         }))
     }
     fn decode_new_reference_ext(&mut self) -> DecodeResult {
-        let id_count = self.reader.read_u16::<BigEndian>()? as usize;
+        let id_count = self.reader.read_u16()? as usize;
         let node = self.decode_term().and_then(aux::term_into_atom)?;
         let creation = u32::from(self.reader.read_u8()?);
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
-            id.push(self.reader.read_u32::<BigEndian>()?);
+            id.push(self.reader.read_u32()?);
         }
         Ok(Term::from(Reference { node, id, creation }))
     }
     fn decode_newer_reference_ext(&mut self) -> DecodeResult {
-        let id_count = self.reader.read_u16::<BigEndian>()? as usize;
+        let id_count = self.reader.read_u16()? as usize;
         let node = self.decode_term().and_then(aux::term_into_atom)?;
-        let creation = self.reader.read_u32::<BigEndian>()?;
+        let creation = self.reader.read_u32()?;
         let mut id = Vec::with_capacity(id_count);
         for _ in 0..id_count {
-            id.push(self.reader.read_u32::<BigEndian>()?);
+            id.push(self.reader.read_u32()?);
         }
         Ok(Term::from(Reference { node, id, creation }))
     }
@@ -393,7 +390,7 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_fun_ext(&mut self) -> DecodeResult {
-        let num_free = self.reader.read_u32::<BigEndian>()?;
+        let num_free = self.reader.read_u32()?;
         let pid = self.decode_term().and_then(aux::term_into_pid)?;
         let module = self.decode_term().and_then(aux::term_into_atom)?;
         let index = self.decode_term().and_then(aux::term_into_fix_integer)?;
@@ -411,12 +408,12 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_new_fun_ext(&mut self) -> DecodeResult {
-        let _size = self.reader.read_u32::<BigEndian>()?;
+        let _size = self.reader.read_u32()?;
         let arity = self.reader.read_u8()?;
         let mut uniq = [0; 16];
         self.reader.read_exact(&mut uniq)?;
-        let index = self.reader.read_u32::<BigEndian>()?;
-        let num_free = self.reader.read_u32::<BigEndian>()?;
+        let index = self.reader.read_u32()?;
+        let num_free = self.reader.read_u32()?;
         let module = self.decode_term().and_then(aux::term_into_atom)?;
         let old_index = self.decode_term().and_then(aux::term_into_fix_integer)?;
         let old_uniq = self.decode_term().and_then(aux::term_into_fix_integer)?;
@@ -437,7 +434,7 @@ impl<R: io::Read> Decoder<R> {
         }))
     }
     fn decode_new_float_ext(&mut self) -> DecodeResult {
-        let value = self.reader.read_f64::<BigEndian>()?;
+        let value = self.reader.read_f64()?;
         Ok(Term::from(Float::try_from(value)?))
     }
     fn decode_float_ext(&mut self) -> DecodeResult {
@@ -456,7 +453,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(FixInteger::from(i32::from(value))))
     }
     fn decode_integer_ext(&mut self) -> DecodeResult {
-        let value = self.reader.read_i32::<BigEndian>()?;
+        let value = self.reader.read_i32()?;
         Ok(Term::from(FixInteger::from(value)))
     }
     fn decode_small_big_ext(&mut self) -> DecodeResult {
@@ -468,7 +465,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(BigInteger { value }))
     }
     fn decode_large_big_ext(&mut self) -> DecodeResult {
-        let count = self.reader.read_u32::<BigEndian>()? as usize;
+        let count = self.reader.read_u32()? as usize;
         let sign = self.reader.read_u8()?;
         self.buf.resize(count, 0);
         self.reader.read_exact(&mut self.buf)?;
@@ -476,7 +473,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(BigInteger { value }))
     }
     fn decode_atom_ext(&mut self) -> DecodeResult {
-        let len = self.reader.read_u16::<BigEndian>()?;
+        let len = self.reader.read_u16()?;
         self.buf.resize(len as usize, 0);
         self.reader.read_exact(&mut self.buf)?;
         let name = aux::latin1_bytes_to_string(&self.buf)?;
@@ -490,7 +487,7 @@ impl<R: io::Read> Decoder<R> {
         Ok(Term::from(Atom { name }))
     }
     fn decode_atom_utf8_ext(&mut self) -> DecodeResult {
-        let len = self.reader.read_u16::<BigEndian>()?;
+        let len = self.reader.read_u16()?;
         self.buf.resize(len as usize, 0);
         self.reader.read_exact(&mut self.buf)?;
         let name = str::from_utf8(&self.buf).or_else(|e| aux::invalid_data_error(e.to_string()))?;
@@ -550,16 +547,14 @@ impl<W: io::Write> Encoder<W> {
             && x.elements.iter().all(|e| to_byte(e).is_some())
         {
             self.writer.write_u8(STRING_EXT)?;
-            self.writer
-                .write_u16::<BigEndian>(x.elements.len() as u16)?;
+            self.writer.write_u16(x.elements.len() as u16)?;
             for b in x.elements.iter().map(|e| to_byte(e).unwrap()) {
                 self.writer.write_u8(b)?;
             }
         } else {
             if !x.is_nil() {
                 self.writer.write_u8(LIST_EXT)?;
-                self.writer
-                    .write_u32::<BigEndian>(x.elements.len() as u32)?;
+                self.writer.write_u32(x.elements.len() as u32)?;
                 for e in &x.elements {
                     self.encode_term(e)?;
                 }
@@ -570,8 +565,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_improper_list(&mut self, x: &ImproperList) -> EncodeResult {
         self.writer.write_u8(LIST_EXT)?;
-        self.writer
-            .write_u32::<BigEndian>(x.elements.len() as u32)?;
+        self.writer.write_u32(x.elements.len() as u32)?;
         for e in &x.elements {
             self.encode_term(e)?;
         }
@@ -584,8 +578,7 @@ impl<W: io::Write> Encoder<W> {
             self.writer.write_u8(x.elements.len() as u8)?;
         } else {
             self.writer.write_u8(LARGE_TUPLE_EXT)?;
-            self.writer
-                .write_u32::<BigEndian>(x.elements.len() as u32)?;
+            self.writer.write_u32(x.elements.len() as u32)?;
         }
         for e in &x.elements {
             self.encode_term(e)?;
@@ -594,7 +587,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_map(&mut self, x: &Map) -> EncodeResult {
         self.writer.write_u8(MAP_EXT)?;
-        self.writer.write_u32::<BigEndian>(x.map.len() as u32)?;
+        self.writer.write_u32(x.map.len() as u32)?;
         for (k, v) in x.map.iter() {
             self.encode_term(k)?;
             self.encode_term(v)?;
@@ -603,20 +596,20 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_byte_list(&mut self, x: &[u8]) -> EncodeResult {
         self.writer.write_u8(STRING_EXT)?;
-        self.writer.write_u16::<BigEndian>(x.len() as u16)?;
+        self.writer.write_u16(x.len() as u16)?;
         self.writer.write_all(x)?;
 
         Ok(())
     }
     fn encode_binary(&mut self, x: &Binary) -> EncodeResult {
         self.writer.write_u8(BINARY_EXT)?;
-        self.writer.write_u32::<BigEndian>(x.bytes.len() as u32)?;
+        self.writer.write_u32(x.bytes.len() as u32)?;
         self.writer.write_all(&x.bytes)?;
         Ok(())
     }
     fn encode_bit_binary(&mut self, x: &BitBinary) -> EncodeResult {
         self.writer.write_u8(BIT_BINARY_EXT)?;
-        self.writer.write_u32::<BigEndian>(x.bytes.len() as u32)?;
+        self.writer.write_u32(x.bytes.len() as u32)?;
         self.writer.write_u8(x.tail_bits_size)?;
         if !x.bytes.is_empty() {
             self.writer.write_all(&x.bytes[0..x.bytes.len() - 1])?;
@@ -627,7 +620,7 @@ impl<W: io::Write> Encoder<W> {
     }
     fn encode_float(&mut self, x: &Float) -> EncodeResult {
         self.writer.write_u8(NEW_FLOAT_EXT)?;
-        self.writer.write_f64::<BigEndian>(x.value)?;
+        self.writer.write_f64(x.value)?;
         Ok(())
     }
     fn encode_atom(&mut self, x: &Atom) -> EncodeResult {
@@ -641,7 +634,7 @@ impl<W: io::Write> Encoder<W> {
         } else {
             self.writer.write_u8(ATOM_UTF8_EXT)?;
         }
-        self.writer.write_u16::<BigEndian>(x.name.len() as u16)?;
+        self.writer.write_u16(x.name.len() as u16)?;
         self.writer.write_all(x.name.as_bytes())?;
         Ok(())
     }
@@ -651,7 +644,7 @@ impl<W: io::Write> Encoder<W> {
             self.writer.write_u8(x.value as u8)?;
         } else {
             self.writer.write_u8(INTEGER_EXT)?;
-            self.writer.write_i32::<BigEndian>(x.value)?;
+            self.writer.write_i32(x.value)?;
         }
         Ok(())
     }
@@ -662,7 +655,7 @@ impl<W: io::Write> Encoder<W> {
             self.writer.write_u8(bytes.len() as u8)?;
         } else if bytes.len() <= u32::MAX as usize {
             self.writer.write_u8(LARGE_BIG_EXT)?;
-            self.writer.write_u32::<BigEndian>(bytes.len() as u32)?;
+            self.writer.write_u32(bytes.len() as u32)?;
         } else {
             return Err(EncodeError::TooLargeInteger(x.clone()));
         }
@@ -673,22 +666,22 @@ impl<W: io::Write> Encoder<W> {
     fn encode_pid(&mut self, x: &Pid) -> EncodeResult {
         self.writer.write_u8(NEW_PID_EXT)?;
         self.encode_atom(&x.node)?;
-        self.writer.write_u32::<BigEndian>(x.id)?;
-        self.writer.write_u32::<BigEndian>(x.serial)?;
-        self.writer.write_u32::<BigEndian>(x.creation)?;
+        self.writer.write_u32(x.id)?;
+        self.writer.write_u32(x.serial)?;
+        self.writer.write_u32(x.creation)?;
         Ok(())
     }
     fn encode_port(&mut self, x: &Port) -> EncodeResult {
         if (x.id >> 32) & 0xFFFFFFFF == 0 {
             self.writer.write_u8(NEW_PORT_EXT)?;
             self.encode_atom(&x.node)?;
-            self.writer.write_u32::<BigEndian>(x.id as u32)?;
-            self.writer.write_u32::<BigEndian>(x.creation)?;
+            self.writer.write_u32(x.id as u32)?;
+            self.writer.write_u32(x.creation)?;
         } else {
             self.writer.write_u8(V4_PORT_EXT)?;
             self.encode_atom(&x.node)?;
-            self.writer.write_u64::<BigEndian>(x.id)?;
-            self.writer.write_u32::<BigEndian>(x.creation)?;
+            self.writer.write_u64(x.id)?;
+            self.writer.write_u32(x.creation)?;
         }
         Ok(())
     }
@@ -697,11 +690,11 @@ impl<W: io::Write> Encoder<W> {
         if x.id.len() > u16::MAX as usize {
             return Err(EncodeError::TooLargeReferenceId(x.clone()));
         }
-        self.writer.write_u16::<BigEndian>(x.id.len() as u16)?;
+        self.writer.write_u16(x.id.len() as u16)?;
         self.encode_atom(&x.node)?;
-        self.writer.write_u32::<BigEndian>(x.creation)?;
+        self.writer.write_u32(x.creation)?;
         for n in &x.id {
-            self.writer.write_u32::<BigEndian>(*n)?;
+            self.writer.write_u32(*n)?;
         }
         Ok(())
     }
@@ -722,7 +715,7 @@ impl<W: io::Write> Encoder<W> {
                 uniq,
             } => {
                 self.writer.write_u8(FUN_EXT)?;
-                self.writer.write_u32::<BigEndian>(free_vars.len() as u32)?;
+                self.writer.write_u32(free_vars.len() as u32)?;
                 self.encode_pid(pid)?;
                 self.encode_atom(module)?;
                 self.encode_fix_integer(&FixInteger::from(index))?;
@@ -748,8 +741,8 @@ impl<W: io::Write> Encoder<W> {
                     let mut tmp = Encoder::new(&mut buf);
                     tmp.writer.write_u8(arity)?;
                     tmp.writer.write_all(uniq)?;
-                    tmp.writer.write_u32::<BigEndian>(index)?;
-                    tmp.writer.write_u32::<BigEndian>(free_vars.len() as u32)?;
+                    tmp.writer.write_u32(index)?;
+                    tmp.writer.write_u32(free_vars.len() as u32)?;
                     tmp.encode_atom(module)?;
                     tmp.encode_fix_integer(&FixInteger::from(old_index))?;
                     tmp.encode_fix_integer(&FixInteger::from(old_uniq))?;
@@ -758,11 +751,58 @@ impl<W: io::Write> Encoder<W> {
                         tmp.encode_term(v)?;
                     }
                 }
-                self.writer.write_u32::<BigEndian>(4 + buf.len() as u32)?;
+                self.writer.write_u32(4 + buf.len() as u32)?;
                 self.writer.write_all(&buf)?;
             }
         }
         Ok(())
+    }
+}
+
+trait ReadExt {
+    fn read_u8(&mut self) -> io::Result<u8>;
+    fn read_u16(&mut self) -> io::Result<u16>;
+    fn read_i32(&mut self) -> io::Result<i32>;
+    fn read_u32(&mut self) -> io::Result<u32>;
+    fn read_u64(&mut self) -> io::Result<u64>;
+    fn read_f64(&mut self) -> io::Result<f64>;
+}
+
+impl<R: io::Read> ReadExt for R {
+    fn read_u8(&mut self) -> io::Result<u8> {
+        let mut buf = [0; 1];
+        self.read_exact(&mut buf)?;
+        Ok(buf[0])
+    }
+
+    fn read_u16(&mut self) -> io::Result<u16> {
+        let mut buf = [0; 2];
+        self.read_exact(&mut buf)?;
+        Ok(u16::from_bytes_be(buf))
+    }
+
+    fn read_i32(&mut self) -> io::Result<i32> {
+        let mut buf = [0; 4];
+        self.read_exact(&mut buf)?;
+        Ok(i32::from_bytes_be(buf))
+    }
+
+    fn read_u32(&mut self) -> io::Result<u32> {
+        let mut buf = [0; 4];
+        self.read_exact(&mut buf)?;
+        Ok(u32::from_bytes_be(buf))
+    }
+
+    fn read_u64(&mut self) -> io::Result<u64> {
+        let mut buf = [0; 8];
+        self.read_exact(&mut buf)?;
+        Ok(u64::from_bytes_be(buf))
+    }
+
+    fn read_f64(&mut self) -> io::Result<f64> {
+        let mut buf = [0; 8];
+        self.read_exact(&mut buf)?;
+        Ok(f64::from_bytes_be(buf))
     }
 }
 
