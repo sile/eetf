@@ -810,7 +810,7 @@ mod aux {
         Err(io::Error::new(io::ErrorKind::InvalidData, message))
     }
     pub fn other_error<T>(message: String) -> io::Result<T> {
-        Err(io::Error::new(io::ErrorKind::Other, message))
+        Err(io::Error::other(message))
     }
     pub fn latin1_bytes_to_string(buf: &[u8]) -> io::Result<String> {
         // FIXME: Supports Latin1 characters
