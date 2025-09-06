@@ -8,7 +8,7 @@
 //! use std::io::Cursor;
 //! use eetf::{Term, Atom};
 //!
-//! let bytes = vec![131, 100, 0, 3, 102, 111, 111];
+//! let bytes = vec![131, 119, 3, 102, 111, 111];
 //! let term = Term::decode(Cursor::new(&bytes)).unwrap();
 //! assert_eq!(term, Term::from(Atom::from("foo")));
 //! ```
@@ -21,7 +21,7 @@
 //! let mut buf = Vec::new();
 //! let term = Term::from(Atom::from("foo"));
 //! term.encode(&mut buf).unwrap();
-//! assert_eq!(vec![131, 100, 0, 3, 102, 111, 111], buf);
+//! assert_eq!(vec![131, 119, 3, 102, 111, 111], buf);
 //! ```
 //!
 //! # Reference

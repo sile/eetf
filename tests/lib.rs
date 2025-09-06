@@ -28,7 +28,7 @@ fn atom_test() {
 
     // Encode
     assert_eq!(
-        vec![131, 100, 0, 3, 102, 111, 111],
+        vec![131, 119, 3, 102, 111, 111],
         encode(Term::from(Atom::from("foo")))
     );
 }
@@ -170,8 +170,8 @@ fn pid_test() {
     // Encode
     assert_eq!(
         vec![
-            131, 88, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0,
-            0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 0
+            131, 88, 119, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0, 0,
+            0, 49, 0, 0, 0, 0, 0, 0, 0, 0
         ],
         encode(Term::from(Pid::from(("nonode@nohost", 49, 0))))
     );
@@ -198,8 +198,8 @@ fn port_test() {
     // Encode
     assert_eq!(
         vec![
-            131, 89, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0,
-            0, 1, 110, 0, 0, 0, 0
+            131, 89, 119, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0, 0,
+            1, 110, 0, 0, 0, 0
         ],
         encode(Term::from(Port::from(("nonode@nohost", 366))))
     );
@@ -231,7 +231,7 @@ fn reference_test() {
     // Encode
     assert_eq!(
         vec![
-            131, 90, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 0, 0, 0, 123
+            131, 90, 0, 1, 119, 3, 102, 111, 111, 0, 0, 0, 0, 0, 0, 0, 123
         ],
         encode(Term::from(Reference::from(("foo", 123))))
     );
@@ -256,9 +256,7 @@ fn external_fun_test() {
 
     // Encode
     assert_eq!(
-        vec![
-            131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3
-        ],
+        vec![131, 113, 119, 3, 102, 111, 111, 119, 3, 98, 97, 114, 97, 3],
         encode(Term::from(ExternalFun::from(("foo", "bar", 3))))
     );
 }
@@ -278,10 +276,10 @@ fn internal_fun_test() {
         free_vars: vec![Term::from(FixInteger::from(10))],
     };
     let bytes = [
-        131, 112, 0, 0, 0, 71, 1, 115, 60, 203, 97, 151, 228, 98, 75, 71, 169, 49, 166, 34, 126,
-        65, 11, 0, 0, 0, 0, 0, 0, 0, 1, 100, 0, 1, 97, 97, 0, 98, 3, 153, 230, 91, 88, 100, 0, 13,
-        110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0, 0, 0, 36, 0, 0, 0, 0, 0,
-        0, 0, 0, 97, 10,
+        131, 112, 0, 0, 0, 69, 1, 115, 60, 203, 97, 151, 228, 98, 75, 71, 169, 49, 166, 34, 126,
+        65, 11, 0, 0, 0, 0, 0, 0, 0, 1, 119, 1, 97, 97, 0, 98, 3, 153, 230, 91, 88, 119, 13, 110,
+        111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0,
+        0, 0, 97, 10,
     ];
     // Decode
     assert_eq!(Ok(term.clone()), decode(&bytes).try_into());
@@ -381,7 +379,7 @@ fn list_test() {
     // Encode
     assert_eq!(vec![131, 106], encode(Term::from(List::nil())));
     assert_eq!(
-        vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 106],
+        vec![131, 108, 0, 0, 0, 1, 119, 1, 97, 106],
         encode(Term::from(List::from(vec![Term::from(Atom::from("a"))])))
     );
 }
@@ -409,7 +407,7 @@ fn improper_list_test() {
 
     // Encode
     assert_eq!(
-        vec![131, 108, 0, 0, 0, 1, 100, 0, 1, 97, 97, 1],
+        vec![131, 108, 0, 0, 0, 1, 119, 1, 97, 97, 1],
         encode(Term::from(ImproperList::from((
             vec![Term::from(Atom::from("a"))],
             Term::from(FixInteger::from(1))
@@ -441,7 +439,7 @@ fn tuple_test() {
 
     // Encode
     assert_eq!(
-        vec![131, 104, 2, 100, 0, 1, 97, 97, 1],
+        vec![131, 104, 2, 119, 1, 97, 97, 1],
         encode(Term::from(Tuple::from(vec![
             Term::from(Atom::from("a")),
             Term::from(FixInteger::from(1))
@@ -478,12 +476,8 @@ fn map_test() {
     let buf = encode(Term::from(map.clone()));
     // Hashmap Iter is not deterministic, so we need to check both possible outputs
     assert!(
-        [
-            131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98
-        ] == buf.as_slice()
-            || [
-                131, 116, 0, 0, 0, 2, 100, 0, 1, 97, 100, 0, 1, 98, 97, 1, 97, 2
-            ] == buf.as_slice()
+        [131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 119, 1, 97, 119, 1, 98] == buf.as_slice()
+            || [131, 116, 0, 0, 0, 2, 119, 1, 97, 119, 1, 98, 97, 1, 97, 2] == buf.as_slice()
     );
 
     //Access
