@@ -9,7 +9,7 @@ repository = "https://github.com/sile/eetf"
 readme = "README.md"
 keywords = ["erlang"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 byteorder = "1"

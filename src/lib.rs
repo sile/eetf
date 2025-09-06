@@ -852,8 +852,8 @@ impl From<HashMap<String, Term>> for Map {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pattern::any;
     use crate::pattern::U8;
+    use crate::pattern::any;
 
     #[test]
     fn it_works() {

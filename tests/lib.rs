@@ -230,7 +230,9 @@ fn reference_test() {
 
     // Encode
     assert_eq!(
-        vec![131, 90, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 0, 0, 0, 123],
+        vec![
+            131, 90, 0, 1, 100, 0, 3, 102, 111, 111, 0, 0, 0, 0, 0, 0, 0, 123
+        ],
         encode(Term::from(Reference::from(("foo", 123))))
     );
 }
@@ -246,12 +248,17 @@ fn external_fun_test() {
     // Decode
     assert_eq!(
         Ok(ExternalFun::from(("foo", "bar", 3))),
-        decode(&[131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3]).try_into()
+        decode(&[
+            131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3
+        ])
+        .try_into()
     );
 
     // Encode
     assert_eq!(
-        vec![131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3],
+        vec![
+            131, 113, 100, 0, 3, 102, 111, 111, 100, 0, 3, 98, 97, 114, 97, 3
+        ],
         encode(Term::from(ExternalFun::from(("foo", "bar", 3))))
     );
 }
@@ -461,15 +468,22 @@ fn map_test() {
     // Decode
     assert_eq!(
         Ok(map.clone()),
-        decode(&[131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98]).try_into()
+        decode(&[
+            131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98
+        ])
+        .try_into()
     );
 
     // Encode
     let buf = encode(Term::from(map.clone()));
     // Hashmap Iter is not deterministic, so we need to check both possible outputs
     assert!(
-        [131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98] == buf.as_slice()
-            || [131, 116, 0, 0, 0, 2, 100, 0, 1, 97, 100, 0, 1, 98, 97, 1, 97, 2] == buf.as_slice()
+        [
+            131, 116, 0, 0, 0, 2, 97, 1, 97, 2, 100, 0, 1, 97, 100, 0, 1, 98
+        ] == buf.as_slice()
+            || [
+                131, 116, 0, 0, 0, 2, 100, 0, 1, 97, 100, 0, 1, 98, 97, 1, 97, 2
+            ] == buf.as_slice()
     );
 
     //Access
