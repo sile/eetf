@@ -196,7 +196,7 @@ impl<R: io::Read> io::Read for ZlibReader<R> {
             }
             self.decoder
                 .feed(&self.input_buf[..n])
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         }
     }
 }
