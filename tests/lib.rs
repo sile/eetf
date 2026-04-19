@@ -527,6 +527,17 @@ fn compressed_term_test() {
     );
 }
 
+#[test]
+fn compressed_term_truncated_test() {
+    // Header (131, 80) + uncompressed size (0, 0, 2, 9) + a few zlib bytes,
+    // then cut off mid-stream so the decoder hits EOF before finishing.
+    let bytes: &[u8] = &[131, 80, 0, 0, 2, 9, 120, 218, 21, 210, 3, 187];
+    match Term::decode(Cursor::new(bytes)).unwrap_err() {
+        DecodeError::Io(e) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+        e => panic!("expected Io(UnexpectedEof), got {e:?}"),
+    }
+}
+
 fn encode(term: Term) -> Vec<u8> {
     let mut buf = Vec::new();
     term.encode(&mut buf).unwrap();

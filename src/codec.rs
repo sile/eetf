@@ -1,6 +1,5 @@
 use super::*;
 use crate::convert::TryAsRef;
-use libflate::zlib;
 use num_bigint::BigInt;
 use std::convert::From;
 use std::io;
@@ -158,6 +157,50 @@ const ATOM_UTF8_EXT: u8 = 118;
 const SMALL_ATOM_UTF8_EXT: u8 = 119;
 const V4_PORT_EXT: u8 = 120;
 
+struct ZlibReader<R> {
+    inner: R,
+    decoder: noflate::zlib::Decoder,
+    input_buf: [u8; 4096],
+}
+impl<R> ZlibReader<R> {
+    fn new(inner: R) -> Self {
+        Self {
+            inner,
+            decoder: noflate::zlib::Decoder::new(),
+            input_buf: [0; 4096],
+        }
+    }
+}
+impl<R: io::Read> io::Read for ZlibReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        loop {
+            let output = self.decoder.output();
+            if !output.is_empty() {
+                let n = std::cmp::min(output.len(), buf.len());
+                buf[..n].copy_from_slice(&output[..n]);
+                self.decoder.advance(n);
+                return Ok(n);
+            }
+            if self.decoder.is_finished() {
+                return Ok(0);
+            }
+            let n = self.inner.read(&mut self.input_buf)?;
+            if n == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "zlib stream ended before finish",
+                ));
+            }
+            self.decoder
+                .feed(&self.input_buf[..n])
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        }
+    }
+}
+
 pub struct Decoder<R> {
     reader: R,
     buf: Vec<u8>,
@@ -222,8 +265,7 @@ impl<R: io::Read> Decoder<R> {
     }
     fn decode_compressed_term(&mut self) -> DecodeResult {
         let _uncompressed_size = self.reader.read_u32()? as usize;
-        let zlib_decoder = zlib::Decoder::new(&mut self.reader)?;
-        let mut decoder = Decoder::new(zlib_decoder);
+        let mut decoder = Decoder::new(ZlibReader::new(&mut self.reader));
         decoder.decode_term()
     }
     #[allow(clippy::unnecessary_wraps)]
