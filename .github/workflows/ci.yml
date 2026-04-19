@@ -6,13 +6,10 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain: [stable, beta, nightly]
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v5
-      - run: rustup update ${{ matrix.toolchain }}
+      - uses: actions/checkout@v6
+      - run: rustup update stable
+      - run: rustup default stable
       - run: cargo check --all
 
   test:
@@ -22,20 +19,18 @@ jobs:
       matrix:
         toolchain: [stable, beta, nightly]
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: rustup update ${{ matrix.toolchain }}
+      - run: rustup default ${{ matrix.toolchain }}
       - run: cargo test --all
 
   lints:
     name: Lints
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain: [stable, beta, nightly]
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v5
-      - run: rustup update ${{ matrix.toolchain }}
+      - uses: actions/checkout@v6
+      - run: rustup update stable
+      - run: rustup default stable
+      - run: rustup component add rustfmt clippy
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all -- -D warnings
