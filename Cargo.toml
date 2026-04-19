@@ -12,6 +12,6 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-libflate = "2"
+noflate = "0.0.7"
 num-bigint = "0.4"
 num-traits = "0.2.19"
