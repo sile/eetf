@@ -1,7 +1,6 @@
 [package]
 name = "eetf"
-version = "0.11.0"
-authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+version = "0.12.0"
 description = "Library for encoding/decoding Erlang External Term Format"
 documentation = "https://docs.rs/eetf"
 homepage = "https://github.com/sile/eetf"
